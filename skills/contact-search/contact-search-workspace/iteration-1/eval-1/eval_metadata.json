@@ -1,0 +1,25 @@
+{
+  "eval_id": 1,
+  "eval_name": "single-company-search",
+  "prompt": "帮我找微软的联系方式",
+  "assertions": [
+    {
+      "name": "returns_contact_info",
+      "description": "应该返回联系方式信息",
+      "type": "contains",
+      "expected": "联系方式"
+    },
+    {
+      "name": "has_website",
+      "description": "应该包含官网链接",
+      "type": "regex",
+      "expected": "https?://[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"
+    },
+    {
+      "name": "has_email_or_phone",
+      "description": "应该包含邮箱或电话",
+      "type": "regex",
+      "expected": "([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}|\\+?\\d{10,15})"
+    }
+  ]
+}

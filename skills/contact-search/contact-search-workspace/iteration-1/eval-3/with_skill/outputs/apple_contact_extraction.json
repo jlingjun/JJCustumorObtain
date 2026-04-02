@@ -1,0 +1,805 @@
+{
+  "status": "success",
+  "tool_name": "spider_single_page_contact",
+  "requested_url": "https://www.apple.com/contact/",
+  "resolved_url": "https://www.apple.com/contact/",
+  "contacts": [
+    {
+      "type": "phone",
+      "value": "1-800-692-7753",
+      "normalized": "+18006927753",
+      "source_url": "https://www.apple.com/contact/",
+      "source_context": null,
+      "confidence": 0.95
+    },
+    {
+      "type": "linkedin",
+      "value": "https://www.linkedin.com/company/apple",
+      "normalized": "https://www.linkedin.com/company/apple",
+      "source_url": "https://www.apple.com/contact/",
+      "source_context": null,
+      "confidence": 0.9
+    },
+    {
+      "type": "twitter",
+      "value": "https://www.twitter.com/Apple",
+      "normalized": "https://www.twitter.com/Apple",
+      "source_url": "https://www.apple.com/contact/",
+      "source_context": null,
+      "confidence": 0.85
+    },
+    {
+      "type": "facebook",
+      "value": "https://www.facebook.com/Apple",
+      "normalized": "https://www.facebook.com/Apple",
+      "source_url": "https://www.apple.com/contact/",
+      "source_context": null,
+      "confidence": 0.85
+    },
+    {
+      "type": "phone",
+      "value": "1-800-538-9696",
+      "normalized": "+18005389696",
+      "source_url": "https://www.apple.com/contact/",
+      "source_context": "eller Referral (Resellers, Trainers, Consultants) 1-800-538-9696 Canada Apple Store (Consumer and Education Indivi",
+      "confidence": 0.8
+    },
+    {
+      "type": "phone",
+      "value": "800-692-7753",
+      "normalized": "8006927753",
+      "source_url": "https://www.apple.com/contact/",
+      "source_context": "ers. You can buy online or call 1-800-MY-APPLE (1-800-692-7753) . You can get information about an order you pla",
+      "confidence": 0.8
+    },
+    {
+      "type": "phone",
+      "value": "800-538-9696",
+      "normalized": "8005389696",
+      "source_url": "https://www.apple.com/contact/",
+      "source_context": "ler Referral (Resellers, Trainers, Consultants) 1-800-538-9696 Canada Apple Store (Consumer and Education Indivi",
+      "confidence": 0.8
+    }
+  ],
+  "candidate_links": [
+    {
+      "url": "https://www.apple.com/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/ae-ar/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/ae/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/at/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/au/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/befr/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/benl/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/br/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/ca/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/ca/fr/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/chde/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/chfr/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/cl/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/co/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/cz/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/de/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/dk/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/es/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/fi/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/fr/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/hk/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/hk/en/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/hu/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/id/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/ie/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/in/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/it/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/jp/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/kr/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/la/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/mo/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/mx/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/my/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/nl/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/no/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/nz/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/ph/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/pl/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/pt/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/sa-ar/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/sa/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/se/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/sg/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/th/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/tr/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/tw/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/uk/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/vn/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/za/contact/",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/api-www/global-elements/global-header/v1/assets/globalheader.css",
+      "role": "other",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/ac/globalfooter/8/en_US/styles/ac-globalfooter.built.css",
+      "role": "other",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/ac/localnav/9/styles/ac-localnav.built.css",
+      "role": "other",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/wss/fonts?families=SF+Pro,v3|SF+Pro+Icons,v3",
+      "role": "other",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/v/contact/c/built/styles/main.built.css",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/v/contact/c/built/styles/overview.built.css",
+      "role": "contact",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/",
+      "role": "homepage",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/us/shop/goto/store",
+      "role": "other",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/mac/",
+      "role": "other",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/ipad/",
+      "role": "other",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/iphone/",
+      "role": "other",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/watch/",
+      "role": "other",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/apple-vision-pro/",
+      "role": "other",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/airpods/",
+      "role": "other",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/tv-home/",
+      "role": "other",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/entertainment/",
+      "role": "other",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/us/shop/goto/buy_accessories",
+      "role": "other",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://support.apple.com/?cid=gn-ols-home-hp-tab",
+      "role": "homepage",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": true
+    },
+    {
+      "url": "https://www.apple.com/us/search",
+      "role": "other",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/us/shop/goto/bag",
+      "role": "other",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/orderstatus/",
+      "role": "other",
+      "anchor_text": "Order Status",
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://signtime.apple/retail/us-EN/asl",
+      "role": "other",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": true
+    },
+    {
+      "url": "https://www.apple.com/retail/",
+      "role": "other",
+      "anchor_text": "Apple Retail Stores",
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/financing/",
+      "role": "other",
+      "anchor_text": "Apple Financial Services",
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "http://consultants.apple.com/",
+      "role": "homepage",
+      "anchor_text": "Apple Consultants Network",
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": true
+    },
+    {
+      "url": "https://www.apple.com/retail/business/",
+      "role": "other",
+      "anchor_text": "Apple&nbsp;Store for Business",
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/us/shop/goto/educationrouting",
+      "role": "other",
+      "anchor_text": "Apple&nbsp;Store for Education",
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://ecommerce.apple.com/asb2b/fys.do?language=EN&amp;country=US",
+      "role": "other",
+      "anchor_text": "Apple&nbsp;Store for Education Institutions",
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": true
+    },
+    {
+      "url": "https://locate.apple.com/sales",
+      "role": "other",
+      "anchor_text": "Reseller Locator",
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": true
+    },
+    {
+      "url": "https://www.apple.com/buy/",
+      "role": "other",
+      "anchor_text": "Apple Authorized Resellers",
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://training.apple.com/",
+      "role": "homepage",
+      "anchor_text": "Apple Training",
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": true
+    },
+    {
+      "url": "https://support.apple.com/contact?cid=mc-nav-contact-contactlp-marcom-06032024",
+      "role": "contact",
+      "anchor_text": "",
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": true
+    },
+    {
+      "url": "https://www.signtime.apple/applecare/asl",
+      "role": "other",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": true
+    },
+    {
+      "url": "https://support.apple.com/109526",
+      "role": "other",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": true
+    },
+    {
+      "url": "https://getsupport.apple.com/locations?caller=aplcontact",
+      "role": "other",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": true
+    },
+    {
+      "url": "https://www.icloud.com/find",
+      "role": "other",
+      "anchor_text": "iCloud.com/find",
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": true
+    },
+    {
+      "url": "https://support.apple.com/101593",
+      "role": "other",
+      "anchor_text": "iPhone, iPad",
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": true
+    },
+    {
+      "url": "https://support.apple.com/101558",
+      "role": "other",
+      "anchor_text": "Apple&nbsp;Watch",
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": true
+    },
+    {
+      "url": "https://support.apple.com/102481",
+      "role": "other",
+      "anchor_text": "Mac",
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": true
+    },
+    {
+      "url": "https://www.apple.com/legal/contact/",
+      "role": "contact",
+      "anchor_text": "apple.com/legal/contact",
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://account.apple.com/",
+      "role": "homepage",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": true
+    },
+    {
+      "url": "https://www.apple.com/support/products/",
+      "role": "other",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://support.apple.com/repair-products",
+      "role": "other",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": true
+    },
+    {
+      "url": "http://discussions.apple.com/",
+      "role": "homepage",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": true
+    },
+    {
+      "url": "https://support.apple.com/my-support",
+      "role": "other",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": true
+    },
+    {
+      "url": "http://jobs.apple.com/",
+      "role": "homepage",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": true
+    },
+    {
+      "url": "https://www.apple.com/pr/",
+      "role": "other",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://mynews.apple.com/",
+      "role": "homepage",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": true
+    },
+    {
+      "url": "https://www.apple.com/usergroups/",
+      "role": "other",
+      "anchor_text": null,
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/feedback/",
+      "role": "other",
+      "anchor_text": "",
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    },
+    {
+      "url": "https://www.apple.com/contact/feedback/",
+      "role": "contact",
+      "anchor_text": "",
+      "source_url": "https://www.apple.com/contact/",
+      "is_external": false
+    }
+  ],
+  "page_evidence": [
+    {
+      "page_url": "https://www.apple.com/contact/",
+      "page_title": "Contact - How to Contact Us - Apple",
+      "summary": "Contact - How to Contact Us - Apple Contacting Apple Sales and Product Inquiries Apple Online Store Apple. com is a convenient place to purchase Apple products and accessories from Apple and other...",
+      "supports_fields": [
+        "phone"
+      ],
+      "snippet": "Contact - How to Contact Us - Apple Contacting Apple Sales and Product Inquiries Apple Online Store Apple.com is a convenient place to purchase Apple products and accessories from Apple and other manufacturers. You can buy online or call 1-800-MY-APPLE (1-800-692-7753) . You can get information about an order you placed on the Apple Online Store through the Order Status page. If you prefer, you can also get order status or make changes by phone at 1-800-692-7753 . Shop with SignTime ASL Support ",
+      "contacts_found": 7,
+      "links_found": 100
+    }
+  ],
+  "missing_hints": [
+    "no_email_found",
+    "no_whatsapp_found",
+    "no_contact_form_found"
+  ],
+  "warnings": [],
+  "raw_debug": {
+    "tool": "SpiderSinglePageContactTool",
+    "start_time": 1775021827.2495065,
+    "link_count": 121,
+    "end_time": 1775021827.5949676,
+    "duration_ms": 345,
+    "text_sample": "Contact - How to Contact Us - Apple Contacting Apple Sales and Product Inquiries Apple Online Store Apple.com is a convenient place to purchase Apple products and accessories from Apple and other manufacturers. You can buy online or call 1-800-MY-APPLE (1-800-692-7753) . You can get information about an order you placed on the Apple Online Store through the Order Status page. If you prefer, you can also get order status or make changes by phone at 1-800-692-7753 . Shop with SignTime ASL Support American Sign Language (ASL) interpreters are available for all your online shopping needs, right in your web browser. Connect to an interpreter Apple Retail Stores Experience the digital lifestyle at any of the Apple Retail Stores around the country. Find store hours and contact information for all locations. Get Financing for You, Your Business, or Your School Apple Financial Services offers financing on Apple products for consumers, educational institutions, and businesses. Speak with your Ap",
+    "raw_links_sample": [
+      "https://www.apple.com/contact/",
+      "https://www.apple.com/ae-ar/contact/",
+      "https://www.apple.com/ae/contact/",
+      "https://www.apple.com/at/contact/",
+      "https://www.apple.com/au/contact/",
+      "https://www.apple.com/befr/contact/",
+      "https://www.apple.com/benl/contact/",
+      "https://www.apple.com/br/contact/",
+      "https://www.apple.com/ca/contact/",
+      "https://www.apple.com/ca/fr/contact/"
+    ]
+  }
+}

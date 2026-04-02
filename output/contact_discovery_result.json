@@ -1,0 +1,31 @@
+{
+  "user_query": "找3个印度尼西亚太阳能冰箱供应商",
+  "current_year": 2026,
+  "max_rounds": 4,
+  "max_companies_per_round": 10,
+  "round_index": 1,
+  "search_mode": "broad",
+  "should_continue": false,
+  "stop_reason": "no_more_deep_search_targets",
+  "already_seen_companies": [],
+  "searched_companies_history": [],
+  "all_known_companies": [],
+  "next_round_deep_search_companies": [],
+  "final_company_records": [],
+  "latest_crew_output": {
+    "round_index": 1,
+    "should_continue": false,
+    "searched_companies_this_round": [],
+    "all_known_companies_after_merge": [],
+    "next_round_deep_search_companies": [],
+    "final_company_records": [],
+    "report_markdown": "# 第一轮搜索结果报告\n\n**搜索时间**：第1轮\n**搜索关键词**：印度尼西亚太阳能冰箱供应商\n**搜索模式**：广泛搜索\n\n## 搜索结果概览\n\n本轮搜索未发现任何符合“印度尼西亚太阳能冰箱供应商”条件的公司。搜索结果为空。\n\n## 分析与建议\n\n1. **可能原因分析**：\n   - 关键词“太阳能冰箱”可能过于具体，在印度尼西亚市场这类产品可能被称为“太阳能冷藏箱”、“太阳能制冷设备”或“离网冷藏解决方案”\n   - 供应商可能不直接使用“太阳能冰箱”这一术语，而是提供完整的太阳能制冷系统\n   - 可能需要搜索更广泛的相关术语\n\n2. **下一轮搜索建议**：\n   - 尝试搜索“solar refrigerator Indonesia”、“solar cooling Indonesia”、“off-grid refrigeration Indonesia”\n   - 搜索“印尼太阳能制冷设备供应商”、“太阳能冷藏箱印尼”\n   - 扩大搜索范围，包括太阳能系统集成商和可再生能源设备供应商\n\n## 状态总结\n\n- **已搜索公司**：无\n- **已知公司总数**：0\n- **需要深度搜索的公司**：无\n- **本轮是否继续**：否（无目标公司需要进一步搜索）\n\n## 后续行动\n\n由于未发现任何相关公司，建议调整搜索策略并开始第二轮搜索。",
+    "memory_update_notes": {
+      "organizer_should_remember_companies": [],
+      "organizer_round_summary": "第一轮搜索结果为空，未发现任何印度尼西亚太阳能冰箱供应商。需要扩大搜索范围或调整搜索策略。"
+    }
+  },
+  "organizer_memory_log": [
+    "Memory write skipped in round 1: Memory requires an embedder for vector search but initialization failed: OpenAIEmbeddingFunction.__init__() got an unexpected keyword argument 'base_url'\n\nTo fix this, do one of the following:\n  - Set OPENAI_API_KEY for the default embedder (text-embedding-3-small)\n  - Pass a different embedder: Memory(embedder={{\"provider\": \"google\", \"config\": {{...}}}})\n  - Pass a callable: Memory(embedder=my_embedding_function)\n\nDocs: https://docs.crewai.com/concepts/memory"
+  ]
+}

@@ -1,0 +1,123 @@
+normal_search_task:
+  description: >
+    基于用户请求 {user_query} 与当前 Flow 状态，执行且仅执行一轮“公司搜索/联系方式补全”工作。当你执行这个任务的时候，激活contact-search skill。
+
+    你会收到以下输入：
+    - round_index: {round_index}
+    - search_mode: {search_mode}，取值为 broad 或 deep
+    - max_companies_per_round: {max_companies_per_round}
+    - already_seen_companies: {already_seen_companies}
+    - target_companies_for_deep_search: {target_companies_for_deep_search}
+
+    执行规则：
+    1. 当 search_mode=broad 时：围绕用户的国家、行业、产品或公司条件，优先发现新的相关公司，并尽可能提取邮箱、电话、WhatsApp、LinkedIn、联系表单等公开联系方式。
+    2. 当 search_mode=deep 时：只围绕 target_companies_for_deep_search 中的公司开展补全，不再扩大搜索范围；重点补全缺失字段与缺失证据。此时可以考虑contact=search skills中的deep-search能力。
+    3. 优先使用公司官网、官方 contact/about 页面、官方 LinkedIn 页面、公司控制的社交媒体账号、可信企业目录等来源。
+    4. 每一条联系方式都必须携带 source_url 与简短 evidence；无法证实的内容不要写入结果。
+    5. 规范化公司名称，避免把同一家公司以别名重复上报。
+    6. already_seen_companies 中已经完整覆盖的公司不要重复深挖；如果该公司被 Flow 指定为 deep 搜索目标，则只补缺失项。
+    7. 任务结束前，明确列出本轮实际搜索过的公司，方便后续记忆系统提取“已搜索公司”经验。
+
+    只输出有证据支撑的公司，不要输出猜测项，不要撰写最终结论报告。
+  expected_output: >
+    返回且仅返回一个合法 JSON 对象，不要使用 markdown，不要使用代码块。
+
+    JSON schema:
+    {
+      "round_index": 1,
+      "search_mode": "broad or deep",
+      "user_query": "string",
+      "researched_companies": [
+        {
+          "company_name": "string",
+          "canonical_company_name": "string",
+          "country": "string or null",
+          "website": "string or null",
+          "company_profile_summary": "string",
+          "contacts": {
+            "emails": [{"value": "string", "source_url": "string", "evidence": "string", "confidence": "high|medium|low"}],
+            "phones": [{"value": "string", "source_url": "string", "evidence": "string", "confidence": "high|medium|low"}],
+            "whatsapp": [{"value": "string", "source_url": "string", "evidence": "string", "confidence": "high|medium|low"}],
+            "linkedin": [{"value": "string", "source_url": "string", "evidence": "string", "confidence": "high|medium|low"}],
+            "contact_forms": [{"value": "string", "source_url": "string", "evidence": "string", "confidence": "high|medium|low"}],
+            "other_channels": [{"value": "string", "source_url": "string", "evidence": "string", "confidence": "high|medium|low"}]
+          },
+          "evidence_urls": ["string"],
+          "completeness_status": "complete|partial|insufficient",
+          "missing_fields": ["string"],
+          "search_notes": "string"
+        }
+      ],
+      "new_company_names_discovered": ["string"],
+      "companies_skipped_as_already_covered": ["string"],
+      "dedup_notes": ["string"]
+    }
+  agent: searcher
+
+organize_task:
+  description: >
+    审核并整合本轮搜索结果，生成“给用户看的报告 + 给 Flow 用的下一轮决策”。
+
+    你将获得 normal_search_task 的输出作为 context，并且还会收到：
+    - round_index: {round_index}
+    - already_seen_companies: {already_seen_companies}
+    - target_companies_for_deep_search: {target_companies_for_deep_search}
+
+    你的职责：
+    1. 将同一公司的不同别名、不同来源结果合并到同一条公司记录下。
+    2. 去除重复联系方式，保留最可靠、最可执行的联系方式。
+    3. 逐家公司判断联系方式完整性：complete / partial / insufficient。
+    4. 只把“仍然重要且仍然缺关键字段或关键证据”的公司放入 next_round_deep_search_companies。
+    5. 生成一份用户可读的 markdown 报告，报告中要体现：公司、官网、已找到的联系方式、缺失项、可信度判断。
+    6. 在输出中明确写出本轮搜索过的公司，方便 organizer 在每轮结束前沉淀“已搜索公司”记忆。
+
+    你不是再次搜索，而是做整合、判断与轮次决策。
+  expected_output: >
+    返回且仅返回一个合法 JSON 对象，不要使用 markdown 代码块。
+
+    JSON schema:
+    {
+      "round_index": 1,
+      "should_continue": true,
+      "searched_companies_this_round": ["string"],
+      "all_known_companies_after_merge": ["string"],
+      "next_round_deep_search_companies": [
+        {
+          "company_name": "string",
+          "missing_fields": ["string"],
+          "reason_for_deep_search": "string",
+          "priority": "high|medium|low"
+        }
+      ],
+      "final_company_records": [
+        {
+          "company_name": "string",
+          "country": "string or null",
+          "website": "string or null",
+          "best_contact_channels": {
+            "emails": ["string"],
+            "phones": ["string"],
+            "whatsapp": ["string"],
+            "linkedin": ["string"],
+            "contact_forms": ["string"],
+            "other_channels": ["string"]
+          },
+          "completeness_status": "complete|partial|insufficient",
+          "missing_fields": ["string"],
+          "evidence_quality": "high|medium|low"
+        }
+      ],
+      "report_markdown": "string",
+      "memory_update_notes": {
+        "organizer_should_remember_companies": ["string"],
+        "organizer_round_summary": "string"
+      }
+    }
+
+    规则：
+    - 如果 next_round_deep_search_companies 为空，则 should_continue 必须为 false。
+    - 如果 next_round_deep_search_companies 非空，则 should_continue 必须为 true。
+    - report_markdown 必须可直接作为最终报告正文或后续 PDF 渲染输入。
+  agent: organizer
+  context:
+    - normal_search_task

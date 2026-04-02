@@ -1,0 +1,31 @@
+{
+  "eval_id": 2,
+  "eval_name": "multi-company-search",
+  "prompt": "搜索华为、阿里巴巴、腾讯这三家公司的联系方式",
+  "assertions": [
+    {
+      "name": "returns_multiple_companies",
+      "description": "应该返回三家公司的信息",
+      "type": "contains",
+      "expected": "华为"
+    },
+    {
+      "name": "has_alibaba",
+      "description": "应该包含阿里巴巴信息",
+      "type": "contains",
+      "expected": "阿里巴巴"
+    },
+    {
+      "name": "has_tencent",
+      "description": "应该包含腾讯信息",
+      "type": "contains",
+      "expected": "腾讯"
+    },
+    {
+      "name": "each_has_contact",
+      "description": "每家公司都应该有联系方式",
+      "type": "regex",
+      "expected": "([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}|\\+?\\d{10,15})"
+    }
+  ]
+}

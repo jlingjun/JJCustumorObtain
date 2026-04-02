@@ -1,0 +1,35 @@
+{
+  "skill_name": "contact-search",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "帮我找微软的联系方式",
+      "expected_output": "应该返回微软的官方联系方式，包括邮箱、电话等，并提供官网链接",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "搜索华为、阿里巴巴、腾讯这三家公司的联系方式",
+      "expected_output": "应该返回三家公司的联系方式，每家公司都应该有官网链接和至少一种联系方式",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "这个页面可能有联系方式，帮我提取：https://www.apple.com/contact/",
+      "expected_output": "应该使用SpiderSinglePageContactTool抓取该页面，提取页面上的所有联系方式",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "帮我找特斯拉的WhatsApp和LinkedIn联系方式",
+      "expected_output": "应该优先搜索WhatsApp和LinkedIn联系方式，返回特斯拉的社交媒体链接",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "搜索一家小型太阳能公司 SMK Solar 的联系方式",
+      "expected_output": "应该能够找到该公司的官网并提取联系方式，即使是小公司也应该有结果",
+      "files": []
+    }
+  ]
+}

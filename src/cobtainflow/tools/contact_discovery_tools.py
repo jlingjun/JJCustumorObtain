@@ -955,7 +955,7 @@ class TavilySiteContactCrawlTool(BaseTool):
         select_domains: List[str] = None,
         exclude_domains: List[str] = None,
         allow_external: bool = False,
-        extract_depth: Literal["basic", "advanced"] = "basic",
+        extract_depth: Literal["basic", "advanced"] = "advanced",
         output_format: Literal["markdown", "text"] = "markdown",
         chunks_per_source: int = 3,
         include_favicon: bool = False,

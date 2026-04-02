@@ -1,0 +1,19 @@
+{
+  "eval_id": 3,
+  "eval_name": "specific-page-extraction",
+  "prompt": "这个页面可能有联系方式，帮我提取：https://www.apple.com/contact/",
+  "assertions": [
+    {
+      "name": "uses_spider_tool",
+      "description": "应该使用SpiderSinglePageContactTool",
+      "type": "contains",
+      "expected": "apple.com"
+    },
+    {
+      "name": "extracts_contacts",
+      "description": "应该提取联系方式",
+      "type": "regex",
+      "expected": "([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}|\\+?\\d{10,15}|https?://)"
+    }
+  ]
+}
