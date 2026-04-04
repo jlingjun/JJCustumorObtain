@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+from pathlib import Path
 from datetime import date
 from typing import Any, Dict, List, Literal, Optional
 
@@ -16,7 +17,10 @@ dotenv.load_dotenv()
 
 from cobtainflow.crews.seor_crew.seor_crew import ContactDiscoveryCrew  # type: ignore
 
-
+# Set custom Memory storage directory
+custom_storage_dir = Path(__file__).parent.parent.parent.parent / "memory"
+custom_storage_dir.mkdir(parents=True, exist_ok=True)
+os.environ["CREWAI_STORAGE_DIR"] = str(custom_storage_dir)
 
 
 # =========================
@@ -98,10 +102,10 @@ class ContactDiscoveryFlow(Flow[ContactDiscoveryState]):
       across rounds within the same flow execution.
     """
 
-    def _crew_bundle(self) -> ContactDiscoveryCrew:
-        if not hasattr(self, "_cached_contact_crew"):
-            self._cached_contact_crew = ContactDiscoveryCrew()
-        return self._cached_contact_crew
+    # def _crew_bundle(self) -> ContactDiscoveryCrew:
+    #     if not hasattr(self, "_cached_contact_crew"):
+    #         self._cached_contact_crew = ContactDiscoveryCrew()
+    #     return self._cached_contact_crew
 
     @start()
     def initialize(self) -> Dict[str, Any]:
@@ -162,10 +166,10 @@ class ContactDiscoveryFlow(Flow[ContactDiscoveryState]):
             "search_mode": self.state.search_mode,
         }
 
-    @listen(or_(initialize, prepare_next_round))
-    def run_contact_discovery_round(self, _: Any = None) -> Dict[str, Any]:
-        """Kick off exactly one crew round and merge the result into flow state."""
+    def _execute_crew_round(self) -> Dict[str, Any]:
+        """Shared crew round execution logic (extracted to avoid or_() single-fire limitation)."""
         crew_inputs = {
+            "flow_id": self.state.id,
             "user_query": self.state.user_query,
             "current_year": self.state.current_year,
             "round_index": self.state.round_index,
@@ -176,13 +180,58 @@ class ContactDiscoveryFlow(Flow[ContactDiscoveryState]):
                 target.model_dump() for target in self.state.next_round_deep_search_companies
             ],
         }
+        self.state.next_round_deep_search_companies=[]
 
         print(
             f"\n--- Running crew round {self.state.round_index} "
             f"({self.state.search_mode}) ---"
         )
-        crew_output = self._crew_bundle().crew().kickoff(inputs=crew_inputs)
-        payload = self._coerce_crew_output_to_dict(crew_output)
+        print(f"[DEBUG] crew_inputs keys: {list(crew_inputs.keys())}")
+        print(f"[DEBUG] target_companies_for_deep_search count: {len(crew_inputs['target_companies_for_deep_search'])}")
+        if crew_inputs['target_companies_for_deep_search']:
+            print(f"[DEBUG] targets: {[t['company_name'] for t in crew_inputs['target_companies_for_deep_search']]}")
+
+        try:
+            crew_instance = ContactDiscoveryCrew().crew()
+            print(f"[DEBUG] Crew instance created, calling kickoff...")
+            crew_output = crew_instance.kickoff(inputs=crew_inputs)
+            print(f"[DEBUG] Crew kickoff returned. type={type(crew_output).__name__}")
+            print(f"[DEBUG] crew_output attributes: {[a for a in dir(crew_output) if not a.startswith('_')]}")
+        except Exception as exc:
+            import traceback
+            print(f"\n[ERROR] !!! Crew kickoff FAILED in round {self.state.round_index} ({self.state.search_mode}) !!!")
+            print(f"[ERROR] Exception type: {type(exc).__name__}")
+            print(f"[ERROR] Exception message: {exc}")
+            print(f"[ERROR] Full traceback:\n{traceback.format_exc()}")
+            self.state.stop_reason = f"crew_error_round_{self.state.round_index}"
+            return self._safe_error_payload(exc)
+
+        try:
+            payload = self._coerce_crew_output_to_dict(crew_output)
+            print(f"[DEBUG] _coerce_crew_output_to_dict succeeded. payload keys: {list(payload.keys())}")
+        except Exception as exc:
+            import traceback
+            print(f"\n[ERROR] !!! _coerce_crew_output_to_dict FAILED !!!")
+            print(f"[ERROR] Exception type: {type(exc).__name__}")
+            print(f"[ERROR] Exception message: {exc}")
+            print(f"[ERROR] Full traceback:\n{traceback.format_exc()}")
+            print(f"[DEBUG] Attempting to inspect raw crew_output for diagnosis...")
+            if hasattr(crew_output, 'raw'):
+                raw_val = getattr(crew_output, 'raw', None)
+                print(f"[DEBUG] crew_output.raw type={type(raw_val).__name__}, len={len(str(raw_val)) if raw_val else 0}")
+                if isinstance(raw_val, str) and len(raw_val) > 500:
+                    print(f"[DEBUG] crew_output.raw (first 2000 chars):\n{raw_val[:2000]}")
+                else:
+                    print(f"[DEBUG] crew_output.raw = {raw_val}")
+            if hasattr(crew_output, 'json_dict'):
+                print(f"[DEBUG] crew_output.json_dict = {crew_output.json_dict}")
+            if hasattr(crew_output, 'pydantic'):
+                print(f"[DEBUG] crew_output.pydantic type={type(crew_output.pydantic).__name__}, value={crew_output.pydantic}")
+            if hasattr(crew_output, 'tasks_output'):
+                print(f"[DEBUG] crew_output.tasks_output = {crew_output.tasks_output}")
+            self.state.stop_reason = f"output_parse_error_round_{self.state.round_index}"
+            return self._safe_error_payload(exc)
+
         self.state.latest_crew_output = payload
 
         searched_this_round = self._dedupe_strings(
@@ -217,11 +266,19 @@ class ContactDiscoveryFlow(Flow[ContactDiscoveryState]):
             payload.get("final_company_records", []),
         )
 
-        self._store_round_memories(payload, searched_this_round)
+        self._store_round_memories(crew_instance,payload, searched_this_round)
 
         return payload
 
-    @router(run_contact_discovery_round)
+    @listen(initialize)
+    def run_contact_discovery_round(self) -> Dict[str, Any]:
+        return self._execute_crew_round()
+
+    @listen(prepare_next_round)
+    def run_next_round(self) -> Dict[str, Any]:
+        return self._execute_crew_round()
+
+    @router(or_(run_contact_discovery_round, run_next_round))
     def decide_next_step(self, result: Dict[str, Any]) -> str:
         """Choose whether to continue looping or finish."""
         targets = self._normalize_targets(
@@ -281,6 +338,7 @@ class ContactDiscoveryFlow(Flow[ContactDiscoveryState]):
 
     def _store_round_memories(
         self,
+        crew_instance: ContactDiscoveryCrew,
         organize_payload: Dict[str, Any],
         searched_this_round: List[str],
     ) -> None:
@@ -290,7 +348,7 @@ class ContactDiscoveryFlow(Flow[ContactDiscoveryState]):
         object across rounds. These explicit remembers reinforce what the organizer
         and searcher should keep for later rounds.
         """
-        memory_owner = self._crew_bundle()
+        memory_owner = crew_instance
         if not hasattr(memory_owner, "_shared_memory"):
             return
 
@@ -334,33 +392,54 @@ class ContactDiscoveryFlow(Flow[ContactDiscoveryState]):
                 f"Memory write skipped in round {self.state.round_index}: {exc}"
             )
 
+    def _safe_error_payload(self, exc: Exception) -> Dict[str, Any]:
+        return {
+            "should_continue": False,
+            "searched_companies_this_round": [],
+            "all_known_companies_after_merge": self.state.all_known_companies,
+            "next_round_deep_search_companies": [],
+            "final_company_records": [r.model_dump() for r in self.state.final_company_records],
+            "report_markdown": f"# Error in Round {self.state.round_index}\n\n**{type(exc).__name__}: {exc}**",
+        }
+
     @staticmethod
     def _coerce_crew_output_to_dict(crew_output: Any) -> Dict[str, Any]:
+        print(f"[DEBUG:coerce] crew_output type={type(crew_output).__name__}, value={crew_output}")
         if crew_output is None:
+            print(f"[DEBUG:coerce] -> branch: crew_output is None, raising ValueError")
             raise ValueError("Crew returned no output.")
 
         if hasattr(crew_output, "json_dict") and crew_output.json_dict:
+            print(f"[DEBUG:coerce] -> branch: json_dict (keys={list(crew_output.json_dict.keys())})")
             return dict(crew_output.json_dict)
 
         if hasattr(crew_output, "pydantic") and crew_output.pydantic is not None:
-            return ContactDiscoveryFlow._model_dump(crew_output.pydantic)
+            pyd_obj = crew_output.pydantic
+            print(f"[DEBUG:coerce] -> branch: pydantic (type={type(pyd_obj).__name__})")
+            return ContactDiscoveryFlow._model_dump(pyd_obj)
 
         if hasattr(crew_output, "to_dict"):
+            print(f"[DEBUG:coerce] -> branch: to_dict")
             maybe_dict = crew_output.to_dict()
             if isinstance(maybe_dict, dict) and maybe_dict:
                 return maybe_dict
+            print(f"[DEBUG:coerce] to_dict() returned empty/non-dict, falling through")
 
         raw = getattr(crew_output, "raw", None)
+        print(f"[DEBUG:coerce] checking raw: type={type(raw).__name__}, len={len(str(raw)) if raw else 0}")
         if isinstance(raw, str) and raw.strip():
             try:
                 parsed = json.loads(raw)
                 if isinstance(parsed, dict):
+                    print(f"[DEBUG:coerce] -> branch: raw JSON parsed (keys={list(parsed.keys())})")
                     return parsed
             except json.JSONDecodeError as exc:
+                print(f"[DEBUG:coerce] raw JSON parse failed: {exc}")
                 raise ValueError(
                     "Crew output is not valid JSON and no structured output was available."
                 ) from exc
 
+        print(f"[DEBUG:coerce] -> all branches exhausted, raising ValueError")
         raise ValueError("Unable to convert crew output into a dictionary.")
 
     @staticmethod
@@ -654,13 +733,34 @@ def kickoff(inputs: Optional[Dict[str, Any]] = None) -> Any:
             "max_companies_per_round": 8,
         })
     """
-    flow = ContactDiscoveryFlow()
-    return flow.kickoff(inputs=inputs or {})
+    import logging
+
+    class _ShutdownNoiseFilter(logging.Filter):
+        def filter(self, record: logging.LogRecord) -> bool:
+            msg = record.getMessage()
+            if "cannot schedule new futures after shutdown" in msg:
+                return False
+            if (
+                record.name == "CrewAIEventsBus"
+                and "Event pairing mismatch" in msg
+                and "'llm_call_failed'" in msg
+            ):
+                return False
+            return True
+
+    root_logger = logging.getLogger()
+    root_logger.addFilter(_ShutdownNoiseFilter())
+
+    try:
+        flow = ContactDiscoveryFlow(tracing=True)
+        flow.kickoff(inputs=inputs or {})
+    finally:
+        root_logger.removeFilter(_ShutdownNoiseFilter())
 
 
 def plot() -> None:
     """Generate an HTML flow graph."""
-    flow = ContactDiscoveryFlow()
+    flow = ContactDiscoveryFlow(tracing=True)
     flow.plot("ContactDiscoveryFlow")
 
 

@@ -37,11 +37,9 @@ def extract_apple_contacts():
         url=url,
         company_name="Apple",
         extract_contacts=True,
-        include_links=True,
         include_html=False,
         include_text=True,
-        max_text_chars=15000,
-        max_links=100
+        max_text_chars=15000
     )
 
     # 解析结果
@@ -55,7 +53,6 @@ def extract_apple_contacts():
     print(f"请求URL: {result['requested_url']}")
     print(f"解析URL: {result.get('resolved_url', 'N/A')}")
     print(f"找到的联系方式数量: {len(result['contacts'])}")
-    print(f"找到的链接数量: {len(result['candidate_links'])}")
     print(f"页面证据数量: {len(result['page_evidence'])}")
     print()
 
@@ -82,24 +79,6 @@ def extract_apple_contacts():
                     context = contact['source_context'][:100]
                     print(f"     上下文: {context}...")
                 print()
-
-    # 显示候选链接
-    if result['candidate_links']:
-        print("-" * 80)
-        print("重要候选链接")
-        print("-" * 80)
-
-        # 筛选重要链接
-        important_roles = ['contact', 'about', 'team', 'social_profile']
-        important_links = [
-            link for link in result['candidate_links']
-            if link['role'] in important_roles
-        ]
-
-        for link in important_links[:20]:  # 只显示前20个
-            print(f"  [{link['role']}] {link['url']}")
-            if link.get('anchor_text'):
-                print(f"    文本: {link['anchor_text']}")
 
     # 显示缺失信息提示
     if result.get('missing_hints'):
@@ -157,7 +136,6 @@ def generate_report(result):
     report_lines.append("## 搜索摘要")
     report_lines.append("")
     report_lines.append(f"- 找到的联系方式数量: **{len(result['contacts'])}**")
-    report_lines.append(f"- 发现的候选链接数量: **{len(result['candidate_links'])}**")
     report_lines.append(f"- 分析的页面数量: **{len(result['page_evidence'])}**")
     report_lines.append("")
 
@@ -184,25 +162,6 @@ def generate_report(result):
                     context = contact['source_context'][:150].replace('\n', ' ')
                     report_lines.append(f"   - 上下文: {context}")
                 report_lines.append("")
-
-    # 重要链接
-    if result['candidate_links']:
-        report_lines.append("## 重要候选链接")
-        report_lines.append("")
-
-        important_roles = ['contact', 'about', 'team', 'social_profile']
-        important_links = [
-            link for link in result['candidate_links']
-            if link['role'] in important_roles
-        ]
-
-        if important_links:
-            report_lines.append("| 类型 | URL | 链接文本 |")
-            report_lines.append("|------|-----|----------|")
-            for link in important_links[:20]:
-                anchor = link.get('anchor_text', 'N/A')
-                report_lines.append(f"| {link['role']} | {link['url']} | {anchor} |")
-            report_lines.append("")
 
     # 缺失信息
     if result.get('missing_hints'):

@@ -1,0 +1,140 @@
+{
+  "search_metadata": {
+    "company_name": "微软（Microsoft）",
+    "search_date": "2026-04-04",
+    "data_sources": [
+      "https://www.microsoft.com/zh-cn/aprd/contactus",
+      "https://www.microsoft.com/zh-cn/contact.aspx",
+      "https://support.microsoft.com/zh-cn/topic/客户服务电话号码-c0389ade-5640-e588-8b0e-28de8afeb3f2",
+      "https://www.microsoftstore.com.cn/blog/blog-support/store-service",
+      "https://www.microsoft.com/en-us/investor/contact-information",
+      "https://www.qcc.com/creport/72b8dd31ad32c089c2f86dbe9f326e17.html"
+    ]
+  },
+  "contact_information": {
+    "china_mainland": {
+      "beijing_headquarters": {
+        "name": "微软亚太研发集团",
+        "address": "北京市海淀区丹棱街5号",
+        "postal_code": "100080",
+        "phone": "(010)-5917 8888",
+        "fax": "(010)-5925 8888"
+      },
+      "microsoft_building": {
+        "name": "微软大厦",
+        "address": "北京市海淀区丹棱街5号",
+        "postal_code": "100080",
+        "phone": "86-10-5917 9000",
+        "fax": "86-10-8286 8501",
+        "service_hotline": "400-820-3800"
+      },
+      "microsoft_china_limited": {
+        "name": "微软（中国）有限公司",
+        "unified_social_credit_code": "91110108600040399G",
+        "legal_representative": "侯阳",
+        "registered_capital": "11902万美元",
+        "establishment_date": "1995-11-01",
+        "phone": "18515983581",
+        "email": "v-xiaohangao@microsoft.com"
+      },
+      "service_hotlines": {
+        "official_store": {
+          "purpose": "售前咨询、订单状态与退款",
+          "service_hours": "周一至周日 9:00-21:00（节假日除外）"
+        },
+        "technical_support": {
+          "purpose": "技术支持与保修",
+          "service_hours": "周一至周五 9:00-21:00，周六、周日 10:00-18:00（节假日除外）"
+        },
+        "office_support": {
+          "hotline": "400 999 9938",
+          "purpose": "Office 技术支持"
+        },
+        "online_chat": {
+          "service_hours": "周一至周日 9:00-24:00",
+          "access_method": "微软官方商城页面右侧'联系客服'按钮"
+        }
+      }
+    },
+    "hong_kong": {
+      "address": "15/F, Cyberport 2, 100 Cyberport Road, Hong Kong",
+      "customer_inquiries_hk": "(852) 2388-9600",
+      "customer_inquiries_macau": "0800760",
+      "phone": "(852) 2804-4200",
+      "fax": "(852) 2560-2217"
+    },
+    "taiwan": {
+      "address": "台北市信义区忠孝东路五段68号18楼",
+      "main_switchboard": "(886) (2) 3725-3888",
+      "fax": "(886) (2) 3725-3999",
+      "xbox_support": "00801-128-190",
+      "other_products_support": "0800-008-833"
+    },
+    "global_headquarters": {
+      "location": "美国",
+      "address": "One Microsoft Way, Redmond, Washington 98052-6399, USA",
+      "investor_relations": {
+        "email": "msft@microsoft.com",
+        "phone_us": "(800) 285-7772",
+        "phone_international": "(425) 706-4400"
+      }
+    },
+    "asia_pacific_offices": {
+      "singapore": {
+        "address": "1 Marina Boulevard, #22-01 One Marina Boulevard, Singapore 018989",
+        "phone": "65-6882-8899",
+        "fax": "65-6882-8866"
+      },
+      "japan": {
+        "address": "〒108-0075，东京都港区港南 2-16-3，品川Grand Central Tower",
+        "phone": "03-4332-5300"
+      },
+      "korea": {
+        "address": "大韩民国，首尔特别市钟路区钟路 1街 50，The K Twin Tower A栋 11层",
+        "phone": "82-2-531-4500",
+        "fax": "82-2-555-1724"
+      },
+      "india": {
+        "address": "10th Floor, Tower B & C, DLF Building No.5 (Epitome), Cyber City, DLF Phase III, Gurgaon, 122002",
+        "phone": "0124 4158000",
+        "fax": "91-124-4158888",
+        "toll_free": "000 8000 404 454"
+      },
+      "australia": {
+        "address": "Microsoft PTY Limited, 1 Denison Street (Levels 24-30), North Sydney NSW 2060, Australia",
+        "customer_support_au": "13 20 58",
+        "customer_support_intl": "+61 2 8870 7510"
+      }
+    }
+  },
+  "contact_types_available": {
+    "phone": true,
+    "fax": true,
+    "email": true,
+    "address": true,
+    "customer_service_hotline": true,
+    "technical_support_hotline": true,
+    "online_service": true
+  },
+  "coverage_regions": {
+    "china_mainland": true,
+    "hong_kong": true,
+    "taiwan": true,
+    "global_headquarters": true,
+    "asia_pacific": true
+  },
+  "completeness_score": {
+    "overall": 95,
+    "phone_numbers": 100,
+    "email_addresses": 80,
+    "physical_addresses": 100,
+    "service_channels": 100
+  },
+  "notes": [
+    "服务热线工作时间可能因节假日调整",
+    "免费号码通常仅限本地呼叫",
+    "收费号码可用于本地和长途呼叫",
+    "微软提供多种在线支持渠道",
+    "中国大陆服务热线提供中文服务"
+  ]
+}

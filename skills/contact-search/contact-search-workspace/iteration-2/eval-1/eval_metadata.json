@@ -1,0 +1,37 @@
+{
+  "eval_id": 1,
+  "eval_name": "microsoft-contact-search",
+  "prompt": "帮我找微软的联系方式",
+  "assertions": [
+    {
+      "name": "找到至少5个联系方式",
+      "description": "应该返回至少5个有效的联系方式（邮箱、电话等）",
+      "type": "count",
+      "expected": ">=5"
+    },
+    {
+      "name": "包含邮箱联系方式",
+      "description": "应该包含至少一个邮箱地址",
+      "type": "contains",
+      "expected": "email"
+    },
+    {
+      "name": "包含电话联系方式",
+      "description": "应该包含至少一个电话号码",
+      "type": "contains",
+      "expected": "phone"
+    },
+    {
+      "name": "提供官网链接",
+      "description": "应该提供微软官网链接",
+      "type": "contains",
+      "expected": "microsoft.com"
+    },
+    {
+      "name": "输出结构化JSON",
+      "description": "应该输出结构化的JSON格式",
+      "type": "format",
+      "expected": "json"
+    }
+  ]
+}

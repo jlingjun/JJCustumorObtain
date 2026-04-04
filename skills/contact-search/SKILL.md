@@ -11,393 +11,288 @@ description: |
   - 批量搜索多家公司的联系方式
   
   即使是简单的"帮我找某公司的联系方式"或"搜索XX公司的信息"等请求，也应使用此技能。
+allowed-tools: TavilySearchTool, SpiderSinglePageContactTool, TavilySiteContactCrawlTool
 ---
 
 # Contact Search Skill
 
 企业联系方式搜索与发现技能，提供从需求解析到深度爬取的完整解决方案。
 
-## 核心理念
-
-本技能采用**两层架构**设计：
-
-1. **首层：需求解析** - Agent利用自身思考能力理解用户意图，生成多样化搜索查询
-2. **第二层：搜索执行** - 根据解析结果执行浅搜索或深搜索，提取联系方式
-
-## 首层：需求解析（Agent核心任务）
-
-需求解析是整个搜索流程的起点，需要Agent调用大模型能力深入理解用户意图。
-
-### 解析目标
-
-将用户的自然语言输入转化为结构化的搜索意图，包括：
-- 识别搜索对象（公司、行业、地区）
-- 确定需要的联系方式类型
-- 生成多样化的搜索查询
-
-### 解析步骤
-
-#### 1. 提取关键信息
-
-从用户输入中识别：
-
-**必需信息**：
-- 公司名称/品牌名
-- 行业领域（如"太阳能冰箱"、"医疗器械"）
-- 地区/国家（如"尼日利亚"、"东南亚"）
-
-**可选信息**：
-- 特定联系方式需求（如"只需要WhatsApp"）
-- 搜索优先级（速度 vs 完整性）
-- 语言偏好
-
-#### 2. 理解搜索场景
-
-**场景A：特定公司搜索**
-```
-用户输入: "帮我找华为的联系方式"
-解析结果:
-  - 搜索对象: 华为（单一明确公司）
-  - 需要类型: 邮箱、电话、LinkedIn等
-  - 搜索策略: 官网优先，社交媒体补充
-```
-
-**场景B：行业提供商搜索**
-```
-用户输入: "帮我寻找尼日利亚太阳能冰箱提供商的联系方式"
-解析结果:
-  - 搜索对象: 尼日利亚太阳能冰箱行业（多个潜在公司）
-  - 需要类型: 邮箱、电话、WhatsApp等
-  - 搜索策略: 行业目录、本地搜索、供应商列表
-```
-
-**场景C：特定页面抓取**
-```
-用户输入: "这个页面可能有联系方式，帮我提取：https://example.com/contact"
-解析结果:
-  - 搜索对象: 单一页面
-  - 需要类型: 页面上所有联系方式
-  - 搜索策略: 直接页面抓取
-```
-
-#### 3. 生成多样化查询
-
-**查询生成原则**：
-- **多角度覆盖**：官网、联系方式、社交媒体、行业目录
-- **语言变体**：中英文查询都尝试
-- **地域限定**：包含国家/地区关键词
-- **特定操作符**：使用`site:`限定域名
-
-**示例：尼日利亚太阳能冰箱提供商**
-
-```
-查询组1 - 行业搜索:
-  - "尼日利亚太阳能冰箱提供商"
-  - "Nigeria solar refrigerator suppliers"
-  - "solar fridge freezer Nigeria"
-
-查询组2 - 地域细分:
-  - "尼日利亚东部 太阳能冰箱"
-  - "尼日利亚北部 solar refrigerator"
-  - "Lagos solar freezer suppliers"
-
-查询组3 - 产品变体:
-  - "太阳能冰柜 尼日利亚 contact"
-  - "solar mobile refrigerator Nigeria"
-  - "solar powered freezer Nigeria suppliers"
-
-查询组4 - 联系方式导向:
-  - "Nigeria solar refrigerator suppliers contact email"
-  - "solar fridge Nigeria whatsapp phone"
-  - "site:linkedin.com Nigeria solar refrigerator"
-```
-
-**示例：特定公司（Limetech）**
-
-```
-查询组1 - 官网搜索:
-  - "Limetech official website"
-  - "Limetech company contact"
-
-查询组2 - 联系方式:
-  - "Limetech contact email phone"
-  - "Limetech 联系方式"
-
-查询组3 - 社交媒体:
-  - "site:linkedin.com Limetech company"
-  - "site:facebook.com Limetech"
-  - "site:instagram.com Limetech"
-
-查询组4 - 文档搜索:
-  - "Limetech PDF contact information"
-  - "Limetech brochure email"
-```
-
-### 输出格式
-
-解析完成后，生成结构化的搜索意图：
-
-```python
-class SearchIntent:
-    company_name: str              # 公司名称（如为行业搜索则为None）
-    industry: str                  # 行业领域
-    region: str                    # 地区/国家
-    search_queries: List[str]      # 生成的搜索查询列表
-    required_contact_types: List   # 需要的联系方式类型
-    priority: str                  # "speed" 或 "completeness"
-```
-
-## 第二层：搜索执行
-
-搜索执行分为两个阶段，详细实现请参考对应的reference文档：
-
-### 浅搜索（Shallow Search）
-
-**用途**：广泛收集信息，快速获取初步结果
-
-**工具**：TavilySearchTool
-
-**详细指南**：请阅读 [references/shallow-search.md](references/shallow-search.md)
-
-**何时使用**：
-- 不知道公司官网
-- 需要快速了解行业提供商
-- 需要收集多个候选公司
-
-### 深搜索（Deep Search）
-
-**用途**：针对特定实体深度挖掘，提取完整联系方式
-
-**工具**：
-- TavilySiteContactCrawlTool（站点级爬取）
-- SpiderSinglePageContactTool（单页面抓取）
-
-**详细指南**：请阅读 [references/deep-search.md](references/deep-search.md)
-
-**何时使用**：
-- 明确提到要使用本skill的深度搜索功能的时候
-- 已知官网入口
-- 浅搜索未找到完整联系方式
-- 需要深度提取页面信息
-
-## 工具概览
-
-### Tool 1: TavilySearchTool
-
-**类型**：CrewAI内置工具
-
-**用途**：网络搜索引擎，用于快速获取搜索结果
-
-**关键参数**：
-- `query`: 搜索查询字符串
-- `search_depth`: "basic" 或 "advanced"
-- `max_results`: 最大结果数（默认5）
-
-**详细说明**：[references/tools-reference.md](references/tools-reference.md#tavilysearchtool)
-
-### Tool 2: TavilySiteContactCrawlTool
-
-**类型**：自定义工具（cobtainflow项目）
-
-**用途**：站点级爬取，自动发现多个页面并提取联系人信息
-
-**关键参数**：
-- `url`: 起始URL
-- `instruction_mode`: "contacts_only" | "contacts_and_summary"
-- `max_depth`: 最大爬取深度（1-3）
-- `limit`: 最大页面数（1-100）
-
-**详细说明**：[references/tools-reference.md](references/tools-reference.md#tavilysitecontactcrawltool)
-
-### Tool 3: SpiderSinglePageContactTool
-
-**类型**：自定义工具（cobtainflow项目）
-
-**用途**：单页面强制抓取与规则抽取
-
-**关键参数**：
-- `url`: 要抓取的页面URL
-- `extract_contacts`: 是否提取联系方式
-- `include_links`: 是否提取链接
-
-**详细说明**：[references/tools-reference.md](references/tools-reference.md#spidersinglepagecontacttool)
-
-## 标准操作流程
+## 核心工作流程
 
 ```
 用户输入
     ↓
-【首层：需求解析】
-    ├─ 提取关键信息
-    ├─ 理解搜索场景
-    └─ 生成多样化查询
+【Phase 1: 需求解析】
+    ├─ 理解用户意图
+    ├─ 识别搜索对象（公司/行业/地区）
+    └─ 生成多样化搜索查询
     ↓
-【第二层：搜索执行】
-    ├─ 浅搜索（TavilySearchTool）
-    │   ├─ 执行搜索查询
-    │   ├─ 评估结果相关性
-    │   └─ 去重与格式化
-    │
-    └─ 深搜索（如需要）
-        ├─ 有官网？→ TavilySiteContactCrawlTool
-        ├─ 有具体页面？→ SpiderSinglePageContactTool
-        └─ 聚合与验证结果
+【Phase 2: 浅搜索】（可选）
+    ├─ 执行搜索查询
+    ├─ 累积所有结果
+    ├─ 去重和过滤
+    └─ 评估是否需要深搜索
     ↓
-输出结果
+【Phase 3: 深搜索】（如需要）
+    ├─ 站点爬取（TavilySiteContactCrawlTool）
+    └─ 或单页面抓取（SpiderSinglePageContactTool）
+    ↓
+【输出】
+    └─ 结构化JSON结果
 ```
 
-## 决策树
+## Phase 1: 需求解析
 
+### 理解用户意图
+
+**你需要自主决定**：
+- 识别搜索对象（特定公司 vs 行业提供商）
+- 确定需要的联系方式类型
+- 决定搜索策略（速度优先 vs 完整性优先）
+- 生成多样化的搜索查询
+
+### 查询生成原则
+
+**你应该**：
+- 根据用户需求灵活调整查询数量（不必局限于固定数量）
+- 使用多角度覆盖：官网、联系方式、社交媒体、行业目录
+- 尝试语言变体：中英文查询
+- 包含地域关键词（如果用户指定了地区）
+- 使用 `site:` 操作符限定特定域名
+
+**示例查询**：
 ```
-用户请求
-│
-├─ 是否知道具体页面URL？
-│   ├─ 是 → 直接深搜索
-│   │        └─ SpiderSinglePageContactTool
-│   │
-│   └─ 否 → 是否知道公司官网？
-│       ├─ 是 → 直接深搜索
-│       │        └─ TavilySiteContactCrawlTool
-│       │
-│       └─ 否 → 先浅搜索
-│                ├─ TavilySearchTool
-│                └─ 根据结果决定是否深搜索
-```
+# 特定公司
+["{company} official website contact", 
+ "{company} 联系方式",
+ "site:linkedin.com {company} company"]
 
-## 使用示例
-
-### 示例1：特定公司搜索
-
-```
-用户: "帮我找微软的联系方式"
-
-执行流程:
-1. 【需求解析】
-   - 识别: 微软（单一公司）
-   - 生成查询: ["Microsoft official website contact", "Microsoft contact email phone", ...]
-
-2. 【浅搜索】
-   - 使用TavilySearchTool搜索
-   - 发现官网: https://microsoft.com
-
-3. 【深搜索】
-   - 使用TavilySiteContactCrawlTool爬取
-   - 提取: 邮箱、电话、LinkedIn等
-
-4. 【输出结果】
-   - 返回完整的联系方式列表
+# 行业提供商
+["{region} {industry} suppliers",
+ "{region} {industry} contact email",
+ "site:linkedin.com {region} {industry}"]
 ```
 
-### 示例2：行业提供商搜索
+## Phase 2: 浅搜索
 
-```
-用户: "帮我寻找尼日利亚太阳能冰箱提供商的联系方式"
+### 使用现成脚本
 
-执行流程:
-1. 【需求解析】
-   - 识别: 尼日利亚 + 太阳能冰箱行业
-   - 生成查询: ["Nigeria solar refrigerator suppliers", "solar fridge Nigeria contact", ...]
-
-2. 【浅搜索】
-   - 使用TavilySearchTool执行多个查询
-   - 收集多个潜在提供商
-   - 去重与评估
-
-3. 【深搜索】
-   - 对每个提供商进行深度爬取
-   - 提取完整联系方式
-
-4. 【输出结果】
-   - 返回所有提供商的联系方式汇总
-```
-
-### 示例3：特定页面抓取
-
-```
-用户: "这个页面可能有联系方式，帮我提取：https://example.com/contact-us"
-
-执行流程:
-1. 【需求解析】
-   - 识别: 单一页面URL
-   - 跳过浅搜索
-
-2. 【深搜索】
-   - 直接使用SpiderSinglePageContactTool
-   - 提取页面所有联系方式
-
-3. 【输出结果】
-   - 返回页面上的联系方式
-```
-
-## 环境要求
-
-```bash
-# 必需的环境变量
-TAVILY_API_KEY=your_api_key_here
-
-# 可选的环境变量
-OPENAI_API_KEY=your_api_key_here
-
-# 安装依赖
-pip install crewai[tools]
-pip install spider-rs
-pip install tavily-python
-pip install beautifulsoup4 lxml
-```
-
-## 导入说明
+**重要**：你有一个现成的脚本可以直接使用！
 
 ```python
-# CrewAI内置工具
-from crewai_tools import TavilySearchTool
+from scripts.search_executor import execute_shallow_search, aggregate_shallow_results
 
-# 自定义工具（cobtainflow项目）
-from cobtainflow.tools.contact_discovery_tools import (
-    SpiderSinglePageContactTool,
-    TavilySiteContactCrawlTool
-)
+# 方式1: 使用完整流程
+results = execute_shallow_search(intents, search_tool)
+
+# 方式2: 自己控制流程
+all_items = []
+for query in your_queries:  # 你决定执行多少个查询
+    result = search_tool._run(query=query, search_depth="basic", max_results=5)
+    items = result.get("results", [])
+    all_items.extend(items)
+
+# 使用聚合函数去重和提取
+aggregated = aggregate_shallow_results(company_name, all_items, required_types)
+```
+
+### 关键原则
+
+**必须累积所有查询的结果**，不能只保留最后一个！
+
+```python
+# ❌ 错误：只保留最后一个
+for query in queries:
+    result = search_tool._run(query=query)
+    final_result = result  # 覆盖了之前的结果！
+
+# ✅ 正确：累积所有结果
+all_results = []
+for query in queries:
+    result = search_tool._run(query=query)
+    items = result.get("results", [])
+    all_results.extend(items)  # 累积
+```
+
+### 自主决策
+
+**你应该根据情况决定**：
+- 执行多少个查询？（根据结果质量动态调整）
+- 使用什么搜索深度？（basic vs advanced）
+- 每个查询返回多少结果？（3-10个）
+- 是否需要深搜索？（根据浅搜索结果判断）
+
+## Phase 3: 深搜索
+
+### 决策树
+
+```
+是否知道具体页面URL？
+├─ 是 → SpiderSinglePageContactTool
+└─ 否 → 是否知道公司官网？
+    ├─ 是 → TavilySiteContactCrawlTool
+    └─ 否 → 先浅搜索，再根据结果决定
+```
+
+### 使用现成脚本
+
+```python
+from scripts.search_executor import execute_deep_search, crawl_single_site, spider_single_page
+
+# 方式1: 使用完整流程
+deep_results = execute_deep_search(shallow_results, crawl_tool, spider_tool)
+
+# 方式2: 单独调用
+result = crawl_single_site(company_name, website_url, crawl_tool)
+result = spider_single_page(company_name, page_url, spider_tool)
 ```
 
 ## 输出格式
 
-最终输出应包含：
+**必须输出结构化的 JSON 格式**：
 
-1. **搜索摘要**
-   - 搜索的公司/提供商数量
-   - 成功/失败/部分成功的数量
-   - 总计找到的联系方式数量
+```json
+{
+  "search_summary": {
+    "total_companies": 1,
+    "successful": 0,
+    "partial": 1,
+    "failed": 0,
+    "total_contacts": 5
+  },
+  "companies": [
+    {
+      "company_name": "公司名称",
+      "website_url": "https://example.com",
+      "search_status": "partial",
+      "contacts": [
+        {
+          "type": "email",
+          "value": "contact@example.com",
+          "normalized": "contact@example.com",
+          "source_url": "https://example.com/contact",
+          "confidence": 0.9
+        }
+      ],
+      "source_urls": ["https://example.com/contact"],
+      "missing_info": ["no_whatsapp"]
+    }
+  ],
+  "suggestions": ["可以尝试搜索 WhatsApp 官方账号"]
+}
+```
 
-2. **详细结果**（每个公司）
-   - 公司名称和官网
-   - 找到的联系方式列表（**已过滤：仅保留置信度≥0.7的结果**）
-   - 数据来源和证据
-   - 缺失信息提示
+## 可用脚本
 
-3. **建议下一步**
-   - 如果有缺失信息，建议补充搜索策略
-   - 如果找到候选链接，建议进一步探索
+本 skill 提供了完整的辅助脚本 `scripts/search_executor.py`：
 
-## 置信度过滤机制
+### 核心函数
 
-**重要**：系统自动过滤置信度低于0.7的联系方式，确保结果质量。
+- `execute_shallow_search(intents, search_tool)` - 执行浅搜索（包含累积和去重）
+- `aggregate_shallow_results(company_name, search_items, required_types)` - 聚合和去重结果
+- `extract_contacts_from_text(text, source_url)` - 从文本提取联系方式
+- `execute_deep_search(shallow_results, crawl_tool, spider_tool)` - 执行深搜索
+- `crawl_single_site(company_name, website_url, crawl_tool)` - 爬取单个站点
+- `spider_single_page(company_name, page_url, spider_tool)` - 抓取单个页面
 
-### 置信度等级
+### 使用建议
 
-- **0.9-1.0** (极高): mailto:链接、tel:链接、官方联系页面直接提取
-- **0.8-0.9** (高): 官方网站、LinkedIn等权威来源
-- **0.7-0.8** (中): 可靠的第三方网站
-- **<0.7** (低): 不可靠来源（已被过滤）
+**推荐使用脚本**，因为：
+1. 已经实现了累积和去重逻辑
+2. 经过测试和优化
+3. 可以节省你的时间和token
 
-### 过滤时机
+**但你有完全的自主权**：
+- 如果脚本不符合你的需求，可以自己实现
+- 可以修改脚本的参数（查询数量、搜索深度等）
+- 可以组合使用脚本函数和自己的逻辑
 
-1. **浅搜索后**: 过滤提取的初步联系方式
-2. **深搜索后**: 过滤深度提取的联系方式
-3. **最终输出前**: 确保所有结果置信度≥0.7
+## 工具说明
+
+### TavilySearchTool
+
+**用途**：网络搜索
+
+**关键参数**：
+- `query`: 搜索查询
+- `search_depth`: "basic"（快）或 "advanced"（全面）
+- `max_results`: 返回结果数（默认5）
+
+**详细文档**：[references/tools-reference.md](references/tools-reference.md)
+
+### TavilySiteContactCrawlTool
+
+**用途**：站点级爬取
+
+**关键参数**：
+- `url`: 起始URL
+- `max_depth`: 爬取深度（1-3）
+- `limit`: 最大页面数（1-100）
+
+### SpiderSinglePageContactTool
+
+**用途**：单页面抓取（仅提取联系方式）
+
+**关键参数**：
+- `url`: 页面URL
+- `extract_contacts`: 是否提取联系方式（默认True）
+
+## 置信度过滤
+
+**重要**：所有输出的联系方式置信度必须 ≥ 0.7
+
+- **0.9-1.0**: mailto链接、tel链接、官方联系页面
+- **0.8-0.9**: 官方网站、LinkedIn等权威来源
+- **0.7-0.8**: 可靠的第三方网站
+- **<0.7**: 必须过滤掉
+
+## 最佳实践
+
+### 1. 自主决策
+
+**不要**：
+- 机械地执行固定数量的查询
+- 忽略搜索结果的质量
+- 盲目执行深搜索
+
+**应该**：
+- 根据结果质量动态调整策略
+- 如果前几个查询已经找到足够信息，可以停止
+- 如果结果质量差，尝试不同的查询策略
+
+### 2. 结果累积
+
+**必须**：
+- 累积所有查询的结果
+- 在聚合过程中实时去重
+- 保留置信度最高的联系方式
+
+### 3. 错误处理
+
+```python
+# 建议的错误处理
+for query in queries:
+    try:
+        result = search_tool._run(query=query)
+        all_results.extend(result.get("results", []))
+    except Exception as e:
+        # 记录错误但继续执行其他查询
+        print(f"查询失败: {query}, 错误: {e}")
+        continue
+```
+
+## 参考文档
+
+- [references/shallow-search.md](references/shallow-search.md) - 浅搜索详细指南
+- [references/deep-search.md](references/deep-search.md) - 深搜索详细指南
+- [references/tools-reference.md](references/tools-reference.md) - 工具详细说明
 
 ---
 
-**重要提示**：
-- 首层需求解析是Agent的核心任务，需要充分利用大模型的思考能力
-- 第二层的详细实现请务必阅读reference文件夹中的文档
-- 工具的详细参数和返回格式请参考 [references/tools-reference.md](references/tools-reference.md)
-- **所有输出的联系方式均经过置信度过滤（≥0.7），无需手动验证**
+**核心原则**：
+- 你有完全的自主权决定搜索策略
+- 使用现成脚本可以节省时间和token
+- 必须累积所有查询的结果
+- 必须输出结构化的JSON格式
+- 所有联系方式置信度必须 ≥ 0.7

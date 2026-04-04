@@ -656,11 +656,8 @@ spider_tool = SpiderSinglePageContactTool()
 | `company_name` | str | None | 公司名称（用于上下文） |
 | `include_html` | bool | False | 是否包含原始HTML |
 | `include_text` | bool | True | 是否包含提取的文本 |
-| `include_links` | bool | True | 是否提取和分类链接 |
 | `extract_contacts` | bool | True | 是否提取联系方式 |
 | `max_text_chars` | int | 12000 | 最大文本字符数 |
-| `max_links` | int | 200 | 最大链接数 |
-| `classify_links` | bool | True | 是否分类链接 |
 
 ### 参数详解
 
@@ -676,21 +673,6 @@ spider_tool = SpiderSinglePageContactTool()
 result = spider_tool._run(
     url="https://example.com/contact",
     include_html=True
-)
-```
-
-#### include_links
-
-是否提取页面上的所有链接并分类。
-
-- **True**: 提取并分类链接（推荐）
-- **False**: 不提取链接
-
-```python
-# 提取链接（可以发现更多候选页面）
-result = spider_tool._run(
-    url="https://example.com/contact",
-    include_links=True
 )
 ```
 
@@ -717,7 +699,9 @@ result = spider_tool._run(
 
 ### 返回格式
 
-返回`NormalizedContactExtractionResult`的JSON字符串（格式与TavilySiteContactCrawlTool相同）。
+返回`NormalizedContactExtractionResult`的JSON字符串。
+
+**注意**：SpiderSinglePageContactTool 的 `candidate_links` 字段始终为空列表，只返回联系方式信息。
 
 ### 使用示例
 
@@ -729,12 +713,11 @@ import json
 
 spider_tool = SpiderSinglePageContactTool()
 
-# 执行抓取
+# 执行抓取（只提取联系方式）
 result_json = spider_tool._run(
     url="https://example.com/contact",
     company_name="Example Corp",
     extract_contacts=True,
-    include_links=True
 )
 
 # 解析结果
@@ -742,7 +725,6 @@ result = json.loads(result_json)
 
 print(f"状态: {result['status']}")
 print(f"找到的联系方式: {len(result['contacts'])}")
-print(f"找到的链接: {len(result['candidate_links'])}")
 ```
 
 #### 高级用法：调试模式
@@ -767,11 +749,10 @@ if "html_sample" in result["raw_debug"]:
 #### 高级用法：快速抓取
 
 ```python
-# 快速抓取（不提取链接）
+# 快速抓取（限制文本长度）
 result = spider_tool._run(
     url="https://example.com/contact",
     extract_contacts=True,
-    include_links=False,
     max_text_chars=5000
 )
 ```
@@ -785,7 +766,6 @@ result = spider_tool._run(
 result = spider_tool._run(
     url="https://example.com/contact-us",
     extract_contacts=True,
-    include_links=True
 )
 
 # 场景2：怀疑页面有隐藏联系方式
@@ -795,11 +775,10 @@ result = spider_tool._run(
     include_html=True  # 启用调试
 )
 
-# 场景3：快速验证
+# 场景3：快速验证（限制文本长度）
 result = spider_tool._run(
     url="https://example.com",
     extract_contacts=True,
-    include_links=False,
     max_text_chars=5000
 )
 ```
@@ -823,39 +802,10 @@ def process_spider_result(result_json):
             "source": contact["source_url"]
         })
     
-    # 提取候选链接
-    candidate_pages = []
-    for link in result["candidate_links"]:
-        if link["role"] in ["contact", "about", "team"]:
-            candidate_pages.append(link["url"])
-    
     return {
         "contacts": contacts,
-        "candidate_pages": candidate_pages,
         "missing": result["missing_hints"]
     }
-```
-
-3. **链接发现**
-
-```python
-def discover_contact_pages(base_url):
-    """通过首页发现联系页面"""
-    result = spider_tool._run(
-        url=base_url,
-        extract_contacts=False,  # 不提取联系方式
-        include_links=True  # 只提取链接
-    )
-    
-    result = json.loads(result)
-    
-    # 筛选联系相关链接
-    contact_links = [
-        link["url"] for link in result["candidate_links"]
-        if link["role"] in ["contact", "about", "team"]
-    ]
-    
-    return contact_links
 ```
 
 ### 注意事项

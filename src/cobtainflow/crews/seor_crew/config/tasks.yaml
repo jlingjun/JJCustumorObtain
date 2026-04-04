@@ -3,6 +3,8 @@ normal_search_task:
     基于用户请求 {user_query} 与当前 Flow 状态，执行且仅执行一轮“公司搜索/联系方式补全”工作。当你执行这个任务的时候，激活contact-search skill。
 
     你会收到以下输入：
+    - user_query: {user_query}
+    - flow_id: {flow_id}
     - round_index: {round_index}
     - search_mode: {search_mode}，取值为 broad 或 deep
     - max_companies_per_round: {max_companies_per_round}
@@ -56,9 +58,11 @@ normal_search_task:
 
 organize_task:
   description: >
-    审核并整合本轮搜索结果，生成“给用户看的报告 + 给 Flow 用的下一轮决策”。
+    审核并整合本轮搜索结果，生成“给用户看的报告 + 给 Flow 用的下一轮决策”。当你执行这个任务的时候，调用contact-organize skill。
 
     你将获得 normal_search_task 的输出作为 context，并且还会收到：
+    - user_query: {user_query}
+    - flow_id: {flow_id}
     - round_index: {round_index}
     - already_seen_companies: {already_seen_companies}
     - target_companies_for_deep_search: {target_companies_for_deep_search}

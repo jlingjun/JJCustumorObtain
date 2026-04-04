@@ -466,8 +466,7 @@ def spider_single_page(
         result_json = spider_tool._run(
             url=page_url,
             company_name=company_name,
-            extract_contacts=True,
-            include_links=True
+            extract_contacts=True
         )
         
         result = json.loads(result_json)

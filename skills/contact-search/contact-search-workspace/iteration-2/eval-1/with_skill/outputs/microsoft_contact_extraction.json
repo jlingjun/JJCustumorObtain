@@ -1,0 +1,230 @@
+{
+  "search_summary": {
+    "total_companies": 1,
+    "successful": 1,
+    "partial": 0,
+    "failed": 0,
+    "total_contacts": 15,
+    "search_date": "2026-04-04",
+    "search_method": "shallow_search + deep_search"
+  },
+  "companies": [
+    {
+      "company_name": "Microsoft",
+      "company_name_cn": "微软",
+      "website_url": "https://www.microsoft.com",
+      "website_url_cn": "https://www.microsoft.com/zh-cn",
+      "search_status": "success",
+      "contacts": [
+        {
+          "type": "email",
+          "category": "investor_relations",
+          "value": "msft@microsoft.com",
+          "normalized": "msft@microsoft.com",
+          "description": "投资者关系邮箱",
+          "source_url": "https://www.microsoft.com/en-us/investor/contact-information",
+          "confidence": 0.95
+        },
+        {
+          "type": "email",
+          "category": "media_relations",
+          "value": "mediarequest@microsoft.com",
+          "normalized": "mediarequest@microsoft.com",
+          "description": "媒体联系邮箱",
+          "source_url": "https://news.microsoft.com/zh-cn/contact-us/",
+          "confidence": 0.95
+        },
+        {
+          "type": "email",
+          "category": "board_contact",
+          "value": "AskBoard@microsoft.com",
+          "normalized": "askboard@microsoft.com",
+          "description": "董事会联系邮箱",
+          "source_url": "https://www.microsoft.com/en-us/investor/corporate-governance/board-of-directors-contact-board",
+          "confidence": 0.95
+        },
+        {
+          "type": "email",
+          "category": "business_conduct",
+          "value": "buscond@microsoft.com",
+          "normalized": "buscond@microsoft.com",
+          "description": "商业行为联系邮箱",
+          "source_url": "https://www.microsoft.com/en-us/investor/corporate-governance/board-of-directors-contact-board",
+          "confidence": 0.95
+        },
+        {
+          "type": "email",
+          "category": "shareholder_services",
+          "value": "web.queries@computershare.com",
+          "normalized": "web.queries@computershare.com",
+          "description": "股东服务邮箱 (Computershare)",
+          "source_url": "https://www.microsoft.com/en-us/investor/contact-information",
+          "confidence": 0.90
+        },
+        {
+          "type": "email",
+          "category": "china_contact",
+          "value": "v-xiaohangao@microsoft.com",
+          "normalized": "v-xiaohangao@microsoft.com",
+          "description": "微软中国联系邮箱",
+          "source_url": "https://www.qcc.com/creport/72b8dd31ad32c089c2f86dbe9f326e17.html",
+          "confidence": 0.85
+        },
+        {
+          "type": "phone",
+          "category": "investor_relations_us",
+          "value": "(800) 285-7772",
+          "normalized": "+18002857772",
+          "description": "投资者关系电话 (美国)",
+          "source_url": "https://www.microsoft.com/en-us/investor/contact-information",
+          "confidence": 0.95
+        },
+        {
+          "type": "phone",
+          "category": "investor_relations_intl",
+          "value": "(425) 706-4400",
+          "normalized": "+14257064400",
+          "description": "投资者关系电话 (国际)",
+          "source_url": "https://www.microsoft.com/en-us/investor/contact-information",
+          "confidence": 0.95
+        },
+        {
+          "type": "phone",
+          "category": "business_conduct_us",
+          "value": "1-877-320-6738",
+          "normalized": "+18773206738",
+          "description": "商业行为热线 (美国)",
+          "source_url": "https://www.microsoft.com/en-us/investor/corporate-governance/board-of-directors-contact-board",
+          "confidence": 0.95
+        },
+        {
+          "type": "phone",
+          "category": "business_conduct_intl",
+          "value": "1-720-904-6844",
+          "normalized": "+17209046844",
+          "description": "商业行为热线 (国际)",
+          "source_url": "https://www.microsoft.com/en-us/investor/corporate-governance/board-of-directors-contact-board",
+          "confidence": 0.95
+        },
+        {
+          "type": "phone",
+          "category": "office_beijing",
+          "value": "(010)-5917 8888",
+          "normalized": "+861059178888",
+          "description": "北京办公室电话",
+          "source_url": "https://www.microsoft.com/zh-cn/aprd/contactus",
+          "confidence": 0.95
+        },
+        {
+          "type": "phone",
+          "category": "office_suzhou",
+          "value": "(0512)-89908888",
+          "normalized": "+8651289908888",
+          "description": "苏州办公室电话",
+          "source_url": "https://www.microsoft.com/zh-cn/aprd/contactus",
+          "confidence": 0.95
+        },
+        {
+          "type": "phone",
+          "category": "office_shanghai",
+          "value": "(021)-6188 8888",
+          "normalized": "+862161888888",
+          "description": "上海办公室电话",
+          "source_url": "https://www.microsoft.com/zh-cn/aprd/contactus",
+          "confidence": 0.95
+        },
+        {
+          "type": "phone",
+          "category": "office_shenzhen",
+          "value": "(0755)-8611 8888",
+          "normalized": "+8675586118888",
+          "description": "深圳办公室电话",
+          "source_url": "https://www.microsoft.com/zh-cn/aprd/contactus",
+          "confidence": 0.95
+        },
+        {
+          "type": "phone",
+          "category": "china_contact",
+          "value": "18515983581",
+          "normalized": "+8618515983581",
+          "description": "微软中国联系电话",
+          "source_url": "https://www.qcc.com/creport/72b8dd31ad32c089c2f86dbe9f326e17.html",
+          "confidence": 0.85
+        }
+      ],
+      "offices": [
+        {
+          "location": "美国总部",
+          "address": "One Microsoft Way, Redmond, Washington 98052-6399, USA",
+          "type": "headquarters"
+        },
+        {
+          "location": "北京",
+          "address": "北京市海淀区丹棱街5号",
+          "postal_code": "100080",
+          "phone": "(010)-5917 8888",
+          "fax": "(010)-5925 8888",
+          "type": "regional_office"
+        },
+        {
+          "location": "苏州",
+          "address": "苏州市工业园区星湖街328号创意产业园25栋",
+          "postal_code": "215123",
+          "phone": "(0512)-89908888",
+          "fax": "(0512)-85189981",
+          "type": "regional_office"
+        },
+        {
+          "location": "上海",
+          "address": "上海市闵行区紫星路999号",
+          "postal_code": "200241",
+          "phone": "(021)-6188 8888",
+          "fax": "(021)-3429 2976",
+          "type": "regional_office"
+        },
+        {
+          "location": "深圳",
+          "address": "深圳市南山区高新南九道55号微软科通大厦2-6F",
+          "postal_code": "518057",
+          "phone": "(0755)-8611 8888",
+          "fax": "(0755)-2655 1121",
+          "type": "regional_office"
+        }
+      ],
+      "source_urls": [
+        "https://www.microsoft.com/en-us/investor/contact-information",
+        "https://news.microsoft.com/zh-cn/contact-us/",
+        "https://www.microsoft.com/zh-cn/aprd/contactus",
+        "https://www.microsoft.com/en-us/investor/corporate-governance/board-of-directors-contact-board",
+        "https://support.microsoft.com/zh-cn/contactus"
+      ],
+      "missing_info": [
+        "no_whatsapp",
+        "no_linkedin_direct",
+        "no_twitter_direct"
+      ]
+    }
+  ],
+  "suggestions": [
+    "可以访问微软官方网站 https://www.microsoft.com 获取更多联系信息",
+    "可以通过 LinkedIn 搜索 Microsoft 官方公司页面",
+    "可以通过 Twitter @Microsoft 获取最新动态和联系信息",
+    "对于技术支持，建议访问 https://support.microsoft.com",
+    "对于商业合作，建议联系当地微软办公室"
+  ],
+  "search_metadata": {
+    "search_queries": [
+      "Microsoft official website contact",
+      "Microsoft 联系方式 邮箱 电话",
+      "Microsoft contact information email phone"
+    ],
+    "pages_fetched": [
+      "https://www.microsoft.com/en-us/investor/contact-information",
+      "https://news.microsoft.com/zh-cn/contact-us/",
+      "https://www.microsoft.com/zh-cn/aprd/contactus",
+      "https://support.microsoft.com/zh-cn/contactus"
+    ],
+    "search_duration_seconds": 45,
+    "confidence_threshold": 0.7
+  }
+}

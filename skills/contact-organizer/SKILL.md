@@ -11,429 +11,136 @@ description: |
   - 处理从contact-search skill输出的结果
   
   即使是简单的"整理搜索结果"或"生成报告"等请求，也应使用此技能。
+allowed-tools: FileWriterTool, FileReadTool
 ---
 
 # Contact Organizer Skill
 
-企业联系方式搜索结果整理与报告生成技能，提供从原始搜索数据到结构化报告的完整解决方案。
+企业联系方式搜索结果整理与报告生成技能。作为 contact-search 的后处理环节，负责数据整理、质量过滤(≥0.7)、完整性评估、跨轮次经验积累、中文报告生成。
 
-## 核心理念
+## ⚠️ 路径约束（必须遵守）
 
-本技能作为contact-search skill的后处理环节，负责：
+**你只允许在以下两个目录中操作文件，绝对不要访问其他任何路径：**
+- `./temp/` — 读写临时 workspace 文件（每轮更新）
+- `./output/` — 写入最终报告（仅最后一轮）
 
-1. **数据整理** - 将分散的搜索结果整合为统一格式
-2. **质量过滤** - 仅保留置信度≥0.7的联系方式
-3. **完整性评估** - 评估每个公司的联系方式完整性
-4. **报告生成** - 生成层次清晰的中文报告
+**禁止行为：**
+- ❌ 不要用 FileReadTool 读取 `./temp/` 以外的任何文件
+- ❌ 不要用 FileWriterTool 写入 `./temp/` 和 `./output/` 以外的任何路径
+- ❌ 不要扫描、列出或探索工作目录中的其他文件或子目录
 
-## 输入数据格式
+## 可用工具
 
-本skill接收来自searcher的原始搜索结果，通常包含：
+| 工具 | 用途 | 核心参数 |
+|------|------|---------|
+| **FileReadTool** | 读取 workspace 文件 | `file_path` — 必须以 `./temp/` 开头 |
+| **FileWriterTool** | 写入 workspace 或报告 | `filename`, `content`, `directory`(=`./temp/`或`./output/`), `overwrite="True"` |
 
-```python
-{
-  "companies": [
-    {
-      "name": "公司名称",
-      "domain": "example.com",
-      "introduction": "公司简介",
-      "contacts": [
-        {
-          "type": "email|phone|whatsapp|linkedin|facebook|instagram|twitter",
-          "value": "联系方式值",
-          "confidence": 0.85,
-          "source_url": "来源页面"
-        }
-      ]
-    }
-  ],
-  "search_metadata": {
-    "total_searches": 10,
-    "successful": 8,
-    "failed": 2
-  }
-}
+### 工具调用速查
+
+**读取历史经验**（round_index > 1 时）：
+```
+FileReadTool → file_path: "./temp/{keywords}_{flow_id}_workspace.md"
+→ 返回文件文本内容；若文件不存在则视为第一轮，跳过即可
 ```
 
-## 输出数据结构
-
-### CompanyFinding 结构
-
-每个公司的详细信息：
-
-```python
-from pydantic import BaseModel
-from typing import List, Optional
-
-class CompanyFinding(BaseModel):
-    company_id: str
-    company_name: str
-    company_introduction: str
-    official_domain: Optional[str] = None
-    emails: List[str] = []
-    phones: List[str] = []
-    whatsapp_numbers: List[str] = []
-    linkedin_urls: List[str] = []
-    facebook_urls: List[str] = []
-    instagram_urls: List[str] = []
-    twitter_urls: List[str] = []
-    source_urls: List[str] = []
-    completeness: float
-    missing_fields: List[str] = []
+**写入/更新 workspace**（每轮结束都必须执行）：
+```
+FileWriterTool → filename: "{keywords}_{flow_id}_workspace.md", directory: "./temp", overwrite: "True", content: "(完整markdown)"
+→ 自动创建目录；覆盖已有文件
 ```
 
-### SearchCrewOutput 结构
-
-汇总输出：
-
-```python
-class SearchCrewOutput(BaseModel):
-    newly_found_companies: List[CompanyFinding]
-    incomplete_companies: List[str]
+**写入最终报告**（should_continue=false 时）：
+```
+FileWriterTool → filename: "{keywords}_{flow_id}_report.md", directory: "./output", overwrite: "True", content: "(完整markdown)"
 ```
 
-## 核心处理逻辑
+## 跨轮次临时经验文件机制
 
-### 1. 数据过滤
+### 设计目的
 
-**置信度过滤**：仅保留置信度≥0.7的联系方式
+多轮流程中，通过 `./temp/` 下的 markdown 文件积累分析经验，避免重复分析、遗漏信息。
 
-```python
-def filter_by_confidence(contacts: List[dict]) -> List[dict]:
-    return [c for c in contacts if c.get('confidence', 0) >= 0.7]
+### 文件命名
+
+- **临时文件**：`./temp/{query_keywords}_{flow_id}_workspace.md`
+- **最终报告**：`./output/{query_keywords}_{flow_id}_report.md`
+- **关键词提取**：去停用词(in/for/the/and/or/of/to/with/at/by/from)，取2-4个实质词，小写下划线连接
+  - 例：`"10 EV battery suppliers in Nigeria"` → `ev_battery_suppliers_nigeria`
+- **flow_id**：优先用 Flow 传入值，否则用时间戳 `YYYYMMDD_HHMMSS`
+
+### 操作流程
+
+```
+阶段0 [round>1]: FileReadTool 读 ./temp/{name}_workspace.md → 解析历史公司状态/决策/策略
+    ↓ (失败=第一轮, 跳过)
+阶段1: 预处理 searcher 输出 → 置信度过滤(≥0.7) → 去重
+    ↓
+阶段2: 与历史经验合并 → 新旧公司匹配 → 更新联系方式 → 重评完整性
+    ↓
+阶段3: 整理公司信息 → 分类联系方式 → 记录来源
+    ↓
+阶段4: 完整性评估 → 5类(邮箱/电话/WhatsApp/官网/社交) → ≥3种为complete
+    ↓
+阶段5: 构建输出JSON → 决定 should_continue / next_round_deep_search_targets
+    ↓
+阶段6 [每轮必做]: FileWriterTool 写入/更新 ./temp/{name}_workspace.md
+  ├─ 第1轮: 从头构建模板(元信息+Round N+全局汇总)
+  └─ 第N轮(N>1): 在现有内容上追加 Round N + 重写全局汇总
+    ↓
+阶段7 [should_continue=false]: FileWriterTool 写最终报告到 ./output/
 ```
 
-**去重处理**：同一类型的联系方式去重
-
-```python
-def deduplicate_contacts(contacts: List[str]) -> List[str]:
-    return list(set(contacts))
-```
-
-### 2. 完整性评估
-
-**联系方式类型定义**：
-- 邮箱 (emails)
-- 电话 (phones)
-- WhatsApp (whatsapp_numbers)
-- 官网 (official_domain)
-- 社交媒体：
-  - LinkedIn (linkedin_urls)
-  - Facebook (facebook_urls)
-  - Instagram (instagram_urls)
-  - Twitter/X (twitter_urls)
-
-**完整性判断标准**：
-- 完整：至少有3种不同类型的联系方式
-- 不完整：少于3种类型的联系方式
-
-```python
-def calculate_completeness(company: CompanyFinding) -> tuple[float, List[str]]:
-    contact_types = 0
-    missing = []
-    
-    if company.emails:
-        contact_types += 1
-    else:
-        missing.append("邮箱")
-    
-    if company.phones:
-        contact_types += 1
-    else:
-        missing.append("电话")
-    
-    if company.whatsapp_numbers:
-        contact_types += 1
-    else:
-        missing.append("WhatsApp")
-    
-    if company.official_domain:
-        contact_types += 1
-    else:
-        missing.append("官网")
-    
-    social_media = (
-        company.linkedin_urls or 
-        company.facebook_urls or 
-        company.instagram_urls or 
-        company.twitter_urls
-    )
-    if social_media:
-        contact_types += 1
-    else:
-        missing.append("社交媒体")
-    
-    completeness = contact_types / 5.0
-    return completeness, missing
-```
-
-### 3. 报告生成
-
-当`incomplete_companies`为空时，生成完整的中文报告。
-
-## 报告模板
+### Workspace 文件结构
 
 ```markdown
-# 企业联系方式搜索报告
+# Contact Discovery Workspace
 
-## 搜索摘要
+## 元信息
+- 用户查询 / Flow ID / 创建时间 / 最后更新(Round N @ timestamp)
 
-- **搜索公司数量**：{total_companies}
-- **成功搜索**：{successful}
-- **部分成功**：{partial}
-- **失败搜索**：{failed}
-- **总计联系方式**：{total_contacts}
+## Round N 分析结果
+### 本轮新发现公司 | 名称 | 官网 | 完整性 | 缺失字段 |
+### 联系方式汇总 (邮箱/电话/WhatsApp/LinkedIn + 置信度)
+### Deep Search 决策 (建议深挖 vs 不继续 + 原因)
+### 本轮经验总结
 
-## 详细结果
-
-### {company_name}
-
-**公司简介**：{introduction}
-
-**官网**：{domain}
-
-**联系方式**：
-- 📧 邮箱：{emails}
-- 📞 电话：{phones}
-- 💬 WhatsApp：{whatsapp_numbers}
-- 💼 LinkedIn：{linkedin_urls}
-- 📘 Facebook：{facebook_urls}
-- 📷 Instagram：{instagram_urls}
-- 🐦 Twitter/X：{twitter_urls}
-
-**数据来源**：
-- {source_url_1}
-- {source_url_2}
-
-**完整性评分**：{completeness:.0%}
-
----
-
-## 统计信息
-
-- **完整公司**：{complete_count} 家
-- **需补充信息**：{incomplete_count} 家
-- **平均完整性**：{avg_completeness:.0%}
-
-## 建议
-
-{recommendations}
+## 全局汇总（每次重写）
+### 所有已知公司状态表 | 名称 | 发现轮次 | 完整性 | 最佳渠道 | 状态 |
+### 搜索策略经验 / 待解决问题
 ```
 
-## 标准操作流程
+## 输入/输出数据结构
 
-```
-原始搜索结果
-    ↓
-【数据预处理】
-    ├─ 解析输入数据
-    ├─ 置信度过滤（≥0.7）
-    └─ 去重处理
-    ↓
-【公司信息整理】
-    ├─ 提取公司基本信息
-    ├─ 分类整理联系方式
-    ├─ 记录数据来源
-    └─ 生成company_id
-    ↓
-【完整性评估】
-    ├─ 计算联系方式类型数量
-    ├─ 识别缺失字段
-    ├─ 计算完整性评分
-    └─ 判断是否完整（≥3种类型）
-    ↓
-【生成输出】
-    ├─ 构建CompanyFinding列表
-    ├─ 构建incomplete_companies列表
-    └─ 生成SearchCrewOutput
-    ↓
-【报告生成】（如果incomplete_companies为空）
-    ├─ 生成搜索摘要
-    ├─ 生成详细结果
-    ├─ 生成统计信息
-    └─ 生成建议
-    ↓
-最终输出
-```
+**输入**：searcher 的 JSON 输出（companies[].contacts[] 含 confidence/source_url）
 
-## 使用示例
-
-### 示例1：完整数据处理
-
+**输出** (`OrganizeTaskOutput`)：
 ```python
-输入：从searcher获取的原始数据（包含10家公司）
-
-处理流程：
-1. 过滤置信度<0.7的联系方式
-2. 为每家公司创建CompanyFinding
-3. 评估每家公司的完整性
-4. 将不完整的公司加入incomplete_companies
-
-输出：
-SearchCrewOutput(
-    newly_found_companies=[...],  # 10个CompanyFinding
-    incomplete_companies=["公司A", "公司B"]  # 2家不完整
-)
-```
-
-### 示例2：生成完整报告
-
-```python
-输入：SearchCrewOutput(incomplete_companies=[])
-
-处理流程：
-1. 确认所有公司都完整
-2. 生成中文格式的报告
-3. 包含搜索摘要、详细结果、统计信息
-
-输出：
-# 企业联系方式搜索报告
-
-## 搜索摘要
-- 搜索公司数量：5
-- 成功搜索：5
-...
-```
-
-## 数据验证规则
-
-### 必需字段验证
-
-- `company_id`: 必需，唯一标识
-- `company_name`: 必需，不能为空
-- `completeness`: 必需，0.0-1.0之间
-
-### 联系方式格式验证
-
-- **邮箱**：符合email格式
-- **电话**：包含国家代码
-- **WhatsApp**：符合电话格式
-- **URL**：符合URL格式
-
-### 置信度验证
-
-- 所有输出的联系方式置信度必须≥0.7
-- 自动过滤低置信度结果
-
-## 错误处理
-
-### 常见错误
-
-1. **输入数据格式错误**
-   - 返回错误信息，说明期望的格式
-
-2. **缺少必需字段**
-   - 记录警告，使用默认值
-
-3. **联系方式格式错误**
-   - 记录警告，跳过该联系方式
-
-### 错误日志格式
-
-```python
-{
-    "timestamp": "2026-04-01T10:30:00Z",
-    "level": "WARNING",
-    "message": "Invalid email format",
-    "company": "公司A",
-    "value": "invalid-email"
-}
-```
-
-## 性能优化
-
-### 批量处理
-
-- 支持批量处理多家公司
-- 并行处理独立的公司数据
-
-### 内存优化
-
-- 流式处理大型数据集
-- 及时释放已处理的数据
-
-## 与其他Skill的协作
-
-### 上游：contact-search
-
-- 接收contact-search skill的输出
-- 处理原始搜索结果
-
-### 下游：可能的扩展
-
-- 可将结果传递给其他分析工具
-- 支持导出为多种格式（JSON、CSV、PDF）
-
-## 环境要求
-
-```bash
-# Python版本
-Python >= 3.10
-
-# 必需的包
-pip install pydantic
-pip install typing-extensions
-```
-
-## 导入说明
-
-```python
-from pydantic import BaseModel
-from typing import List, Optional
-import json
-from datetime import datetime
+class OrganizeTaskOutput(BaseModel):
+    round_index: int
+    should_continue: bool
+    searched_companies_this_round: List[str]
+    all_known_companies_after_merge: List[str]
+    next_round_deep_search_companies: List[DeepSearchTarget]  # company_name, missing_fields, reason, priority
+    final_company_records: List[FinalCompanyRecord]       # company_name, best_contact_channels, completeness_status
+    report_markdown: str                                  # 最终中文报告
+    memory_update_notes: MemoryUpdateNotes               # organizer_should_remember_companies, round_summary
 ```
 
 ## 最佳实践
 
-1. **始终进行置信度过滤**：确保输出质量
-2. **记录数据来源**：便于追溯和验证
-3. **完整性评估要严格**：至少3种类型才算完整
-4. **报告要清晰易读**：使用中文，层次分明
-5. **错误处理要完善**：记录所有异常情况
-
-## 输出示例
-
-### CompanyFinding 示例
-
-```json
-{
-  "company_id": "comp_001",
-  "company_name": "微软",
-  "company_introduction": "全球领先的科技公司",
-  "official_domain": "microsoft.com",
-  "emails": ["contact@microsoft.com", "support@microsoft.com"],
-  "phones": ["+1-425-882-8080"],
-  "whatsapp_numbers": [],
-  "linkedin_urls": ["https://linkedin.com/company/microsoft"],
-  "facebook_urls": ["https://facebook.com/Microsoft"],
-  "instagram_urls": ["https://instagram.com/microsoft"],
-  "twitter_urls": ["https://twitter.com/Microsoft"],
-  "source_urls": [
-    "https://microsoft.com/contact",
-    "https://linkedin.com/company/microsoft"
-  ],
-  "completeness": 0.8,
-  "missing_fields": ["WhatsApp"]
-}
-```
-
-### SearchCrewOutput 示例
-
-```json
-{
-  "newly_found_companies": [
-    { "company_id": "comp_001", ... },
-    { "company_id": "comp_002", ... }
-  ],
-  "incomplete_companies": ["公司C"]
-}
-```
+1. 置信度过滤 ≥0.7，记录来源 URL
+2. 完整性严格：≥3种类型才算 complete
+3. 报告中文、层次分明
+4. **每轮都用 FileWriterTool 更新 workspace**（这是强制动作，不是可选）
+5. 先 FileReadTool 读历史，再 FileWriterTool 写入
+6. 同一 query 关键词始终一致
+7. FileWriterTool 的 overwrite **必须设为 True**
 
 ---
 
-**重要提示**：
-- 本skill专注于数据整理和报告生成，不执行实际的搜索操作
-- 所有输出的联系方式均经过置信度过滤（≥0.7）
-- 报告使用中文撰写，层次清晰
-- 完整性评估严格遵循"至少3种类型"的标准
+**核心规则**：
+- 不执行搜索操作，只整理和报告
+- 所有输出联系方式经置信度过滤（≥0.7）
+- **必须主动调用工具操作文件**，不能只描述不执行
+- **只在 ./temp/ 和 ./output/ 中操作文件**，绝不触碰其他路径

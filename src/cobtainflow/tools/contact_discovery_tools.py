@@ -354,19 +354,17 @@ def extract_phones_from_text(text: str, source_url: str = "") -> List[ContactIte
     return contacts
 
 
-def extract_contact_links_from_html(html: str, source_url: str = "") -> Tuple[List[ContactItem], List[CandidateLink]]:
+def extract_contact_links_from_html(html: str, source_url: str = "") -> List[ContactItem]:
     """
     Extract contact-related links from HTML content.
     
-    Returns tuple of (contacts, candidate_links).
+    Returns list of ContactItem objects.
     """
     if not html:
-        return [], []
+        return []
     
     contacts = []
-    candidate_links = []
     seen_contacts: Set[Tuple[ContactType, str]] = set()
-    seen_links: Set[str] = set()
     
     mailto_pattern = re.compile(r'href=["\']mailto:([^"\']+)["\']', re.IGNORECASE)
     for match in mailto_pattern.finditer(html):
@@ -437,39 +435,7 @@ def extract_contact_links_from_html(html: str, source_url: str = "") -> Tuple[Li
                 ))
                 seen_contacts.add((contact_type, social_url.lower()))
     
-    href_pattern = re.compile(r'href=["\']([^"\']+)["\']', re.IGNORECASE)
-    anchor_pattern = re.compile(r'>([^<]*)</a>', re.IGNORECASE)
-    
-    for i, match in enumerate(href_pattern.finditer(html)):
-        href = match.group(1)
-        
-        if href.startswith(('mailto:', 'tel:', 'javascript:', '#', 'data:')):
-            continue
-        
-        absolute_url = urljoin(source_url, href)
-        
-        if absolute_url.lower() in seen_links:
-            continue
-        seen_links.add(absolute_url.lower())
-        
-        anchor_text = None
-        remaining = html[match.end():]
-        anchor_match = anchor_pattern.search(remaining[:200])
-        if anchor_match:
-            anchor_text = anchor_match.group(1).strip()[:100]
-        
-        is_external = urlparse(absolute_url).netloc != urlparse(source_url).netloc
-        role = classify_url_role(absolute_url, anchor_text)
-        
-        candidate_links.append(CandidateLink(
-            url=absolute_url,
-            role=role,
-            anchor_text=anchor_text,
-            source_url=source_url,
-            is_external=is_external
-        ))
-    
-    return contacts, candidate_links
+    return contacts
 
 
 def classify_url_role(url: str, anchor_text: Optional[str] = None) -> LinkRole:
@@ -689,11 +655,8 @@ class SpiderSinglePageContactInput(BaseModel):
     company_name: Optional[str] = Field(default=None, description="Company name for context")
     include_html: bool = Field(default=False, description="Include raw HTML in debug output")
     include_text: bool = Field(default=True, description="Include extracted text in debug output")
-    include_links: bool = Field(default=True, description="Extract and classify links")
     extract_contacts: bool = Field(default=True, description="Extract contact information")
     max_text_chars: int = Field(default=12000, description="Maximum characters for text extraction")
-    max_links: int = Field(default=200, description="Maximum number of links to return")
-    classify_links: bool = Field(default=True, description="Classify link roles")
 
 
 class TavilySiteContactCrawlInput(BaseModel):
@@ -734,7 +697,6 @@ class SpiderSinglePageContactTool(BaseTool):
     
     Fetches a single URL and extracts:
     - Contact information (email, phone, WhatsApp, LinkedIn, etc.)
-    - Links with role classification
     - Page evidence and metadata
     
     Use this tool when you have a specific URL to analyze and need
@@ -746,11 +708,9 @@ class SpiderSinglePageContactTool(BaseTool):
         "Fetches and analyzes a single webpage to extract contact information. "
         "Use this tool when you have a specific URL and need to find emails, "
         "phone numbers, WhatsApp links, LinkedIn profiles, social media links, "
-        "and contact forms. Also discovers and classifies all links on the page "
-        "by their role (contact, about, team, social, etc.). Returns structured "
-        "JSON with contacts, candidate links, page evidence, and missing hints. "
-        "Prefer this tool over TavilySiteContactCrawlTool when you only need to "
-        "analyze one specific page."
+        "and contact forms. Returns structured JSON with contacts, page evidence, "
+        "and missing hints. Prefer this tool over TavilySiteContactCrawlTool when "
+        "you only need to analyze one specific page."
     )
     args_schema: type[BaseModel] = SpiderSinglePageContactInput
     
@@ -760,11 +720,8 @@ class SpiderSinglePageContactTool(BaseTool):
         company_name: Optional[str] = None,
         include_html: bool = False,
         include_text: bool = True,
-        include_links: bool = True,
         extract_contacts: bool = True,
-        max_text_chars: int = 12000,
-        max_links: int = 200,
-        classify_links: bool = True
+        max_text_chars: int = 12000
     ) -> str:
         """
         Execute single page contact discovery.
@@ -800,10 +757,9 @@ class SpiderSinglePageContactTool(BaseTool):
                 text = text[:max_text_chars]
             
             contacts: List[ContactItem] = []
-            candidate_links: List[CandidateLink] = []
             
             if extract_contacts:
-                link_contacts, candidate_links = extract_contact_links_from_html(html, url)
+                link_contacts = extract_contact_links_from_html(html, url)
                 contacts.extend(link_contacts)
                 
                 text_contacts = extract_emails_from_text(text, url)
@@ -816,11 +772,7 @@ class SpiderSinglePageContactTool(BaseTool):
                 if form_contact:
                     contacts.append(form_contact)
             
-            if include_links and candidate_links:
-                candidate_links = candidate_links[:max_links]
-            
             contacts = dedupe_contacts(contacts)
-            candidate_links = dedupe_links(candidate_links)
             
             page_title = extract_page_title(html)
             summary = summarize_text_briefly(text)
@@ -842,7 +794,7 @@ class SpiderSinglePageContactTool(BaseTool):
                 supports_fields=supports_fields,
                 snippet=text[:500] if text else None,
                 contacts_found=len(contacts),
-                links_found=len(candidate_links)
+                links_found=0
             )]
             
             missing_hints = generate_missing_hints(contacts, page_evidence)
@@ -854,7 +806,6 @@ class SpiderSinglePageContactTool(BaseTool):
                 raw_debug["html_sample"] = html[:2000]
             if include_text:
                 raw_debug["text_sample"] = text[:1000]
-            raw_debug["raw_links_sample"] = [l.url for l in candidate_links[:10]]
             
             result = NormalizedContactExtractionResult(
                 status="success",
@@ -862,7 +813,7 @@ class SpiderSinglePageContactTool(BaseTool):
                 requested_url=url,
                 resolved_url=resolved_url,
                 contacts=contacts,
-                candidate_links=candidate_links,
+                candidate_links=[],
                 page_evidence=page_evidence,
                 missing_hints=missing_hints,
                 warnings=warnings,
@@ -1237,16 +1188,13 @@ def example_usage():
         company_name="Example Corp",
         include_html=False,
         include_text=True,
-        include_links=True,
         extract_contacts=True,
-        max_text_chars=5000,
-        max_links=50
+        max_text_chars=5000
     )
     
     spider_result = json.loads(spider_result_json)
     print(f"Status: {spider_result['status']}")
     print(f"Contacts found: {len(spider_result['contacts'])}")
-    print(f"Links found: {len(spider_result['candidate_links'])}")
     print(f"Missing hints: {spider_result['missing_hints']}")
     
     print("\n2. TavilySiteContactCrawlTool Example:")

@@ -1,4 +1,4 @@
-import os
+﻿import os
 # from __future__ import annotations
 
 from typing import Any, Dict, List, Literal
@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Literal
 from crewai import Agent, Crew, Memory, Process, Task
 from crewai.project import CrewBase, after_kickoff, agent, before_kickoff, crew, task
 from pydantic import BaseModel, Field
-from crewai_tools import TavilySearchTool
+from crewai_tools import TavilySearchTool, FileWriterTool, FileReadTool
 from cobtainflow.tools import TavilySiteContactCrawlTool, SpiderSinglePageContactTool
 from crewai.agents.agent_builder.base_agent import BaseAgent
 from openai import OpenAI
@@ -164,25 +164,31 @@ class ContactDiscoveryCrew():
     
     # ---------- memory ----------
     def my_embedder(self, texts: list[str]) -> list[list[float]]:
-    # Your embedding logic here
-        client = OpenAI(
-            api_key=os.getenv("EMBEDDING_API_KEY"),  # 如果您没有配置环境变量，请在此处用您的API Key进行替换
-            base_url=os.getenv("EMBEDDING_BASE_URL")  # 百炼服务的base_url
-        )
-        completion = client.embeddings.create(
-            model="text-embedding-v4",
-            input=texts,
-            dimensions=1024, # 指定向量维度（仅 text-embedding-v3及 text-embedding-v4支持该参数）
-            encoding_format="float"
-        )
-        return [item.embedding for item in completion.data]
+        import traceback as _tb
+        _dimensions = 1024
+        try:
+            client = OpenAI(
+                api_key=os.getenv("EMBEDDING_API_KEY"),
+                base_url=os.getenv("EMBEDDING_BASE_URL"),
+            )
+            batch_size = 10
+            all_embeddings: list[list[float]] = []
+            for i in range(0, len(texts), batch_size):
+                batch = texts[i:i + batch_size]
+                completion = client.embeddings.create(
+                    model="text-embedding-v4",
+                    input=batch,
+                    dimensions=_dimensions,
+                    encoding_format="float",
+                )
+                all_embeddings.extend([item.embedding for item in completion.data])
+            return all_embeddings
+        except Exception as exc:
+            print(f"[WARN] Embedding failed ({type(exc).__name__}: {exc}), returning zero vectors")
+            return [[0.0] * _dimensions for _ in texts]
     
     def _shared_memory(self) -> Memory:
-        if not hasattr(self, "__shared_memory"):
-            self.__shared_memory = Memory(llm="deepseek/DeepSeek-V3.2",
-                embedder=self.my_embedder
-            )
-        return self.__shared_memory
+        return Memory(llm="deepseek/DeepSeek-V3.2", embedder=self.my_embedder)
 
 
     # ---------- agents ----------
@@ -200,6 +206,7 @@ class ContactDiscoveryCrew():
     def organizer(self) -> Agent:
         return Agent(
             config=self.agents_config["organizer"],
+            tools=[FileWriterTool(), FileReadTool()],
             memory=self._shared_memory().scope("/agent/organizer"),
             skills=["./skills/contact-organizer"]
         )
@@ -220,6 +227,7 @@ class ContactDiscoveryCrew():
             config=self.tasks_config["organize_task"],
             agent=self.organizer(),
             context=[self.normal_search_task()],
+            tracing=True,
             output_json=OrganizeTaskOutput,
         )
 
@@ -233,8 +241,9 @@ class ContactDiscoveryCrew():
             tasks=self.tasks,
             process=Process.sequential,
             memory=self._shared_memory(),
+            tracing=True,
             verbose=True,
-            cache=True,
+            cache=False,
         )
 
     # ---------- helpers ----------

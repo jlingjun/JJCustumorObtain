@@ -285,10 +285,6 @@ spider_tool = SpiderSinglePageContactTool()
 - **include_text** (bool): 是否包含提取的文本
   - 默认值: True
 
-- **include_links** (bool): 是否提取和分类链接
-  - 默认值: True
-  - 建议保持True以发现更多候选页面
-
 - **extract_contacts** (bool): 是否提取联系方式
   - 默认值: True
   - 建议保持True
@@ -297,17 +293,11 @@ spider_tool = SpiderSinglePageContactTool()
   - 默认值: 12000
   - 限制提取的文本长度
 
-- **max_links** (int): 最大链接数
-  - 默认值: 200
-  - 限制返回的链接数量
-
-- **classify_links** (bool): 是否分类链接
-  - 默认值: True
-  - 自动识别contact、about、team等页面
-
 ### 返回格式
 
-返回`NormalizedContactExtractionResult`的JSON字符串（格式同TavilySiteContactCrawlTool）。
+返回`NormalizedContactExtractionResult`的JSON字符串。
+
+**注意**：SpiderSinglePageContactTool 的 `candidate_links` 字段始终为空列表，只返回联系方式信息。
 
 ### 使用示例
 
@@ -330,8 +320,7 @@ def spider_page(page_url, company_name):
         result_json = spider_tool._run(
             url=page_url,
             company_name=company_name,
-            extract_contacts=True,
-            include_links=True
+            extract_contacts=True
         )
         
         # 解析结果
@@ -497,8 +486,7 @@ if website_url and priority == "completeness":
 elif contact_page_url:
     use_tool = "SpiderSinglePageContactTool"
     params = {
-        "extract_contacts": True,
-        "include_links": True
+        "extract_contacts": True
     }
 
 # 场景3：只需要快速验证
@@ -506,7 +494,6 @@ elif priority == "speed":
     use_tool = "SpiderSinglePageContactTool"
     params = {
         "extract_contacts": True,
-        "include_links": False,
         "max_text_chars": 5000
     }
 ```

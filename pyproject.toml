@@ -5,7 +5,8 @@ description = "CObtainFlow using crewAI"
 authors = [{ name = "Your Name", email = "you@example.com" }]
 requires-python = ">=3.10,<3.14"
 dependencies = [
-    "crewai[tools]==1.12.2",
+    "crewai[tools]>=1.13.0",
+    "spider-rs>=0.0.57",
     "tavily-python>=0.7.23",
 ]
 
