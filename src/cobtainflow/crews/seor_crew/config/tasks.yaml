@@ -1,6 +1,8 @@
 normal_search_task:
   description: >
-    基于用户请求 {user_query} 与当前 Flow 状态，执行且仅执行一轮“公司搜索/联系方式补全”工作。当你执行这个任务的时候，激活contact-search skill。
+    基于用户请求 {user_query} 与当前 Flow 状态，执行且仅执行一轮"公司搜索/联系方式补全"工作。
+    
+    【重要】你已激活 contact-search skill，该skill提供搜索能力和工具，但输出格式必须严格遵循本Task的expected_output定义（NormalSearchTaskOutput）。
 
     你会收到以下输入：
     - user_query: {user_query}
@@ -13,12 +15,12 @@ normal_search_task:
 
     执行规则：
     1. 当 search_mode=broad 时：围绕用户的国家、行业、产品或公司条件，优先发现新的相关公司，并尽可能提取邮箱、电话、WhatsApp、LinkedIn、联系表单等公开联系方式。
-    2. 当 search_mode=deep 时：只围绕 target_companies_for_deep_search 中的公司开展补全，不再扩大搜索范围；重点补全缺失字段与缺失证据。此时可以考虑contact=search skills中的deep-search能力。
+    2. 当 search_mode=deep 时：只围绕 target_companies_for_deep_search 中的公司开展补全，不再扩大搜索范围；重点补全缺失字段与缺失证据。此时可以使用contact-search skill提供的深搜索能力。
     3. 优先使用公司官网、官方 contact/about 页面、官方 LinkedIn 页面、公司控制的社交媒体账号、可信企业目录等来源。
     4. 每一条联系方式都必须携带 source_url 与简短 evidence；无法证实的内容不要写入结果。
     5. 规范化公司名称，避免把同一家公司以别名重复上报。
     6. already_seen_companies 中已经完整覆盖的公司不要重复深挖；如果该公司被 Flow 指定为 deep 搜索目标，则只补缺失项。
-    7. 任务结束前，明确列出本轮实际搜索过的公司，方便后续记忆系统提取“已搜索公司”经验。
+    7. 任务结束前，明确列出本轮实际搜索过的公司，方便后续记忆系统提取"已搜索公司"经验。
 
     只输出有证据支撑的公司，不要输出猜测项，不要撰写最终结论报告。
   expected_output: >
@@ -58,9 +60,11 @@ normal_search_task:
 
 organize_task:
   description: >
-    审核并整合本轮搜索结果，生成“给用户看的报告 + 给 Flow 用的下一轮决策”。当你执行这个任务的时候，调用contact-organize skill。
-
-    你将获得 normal_search_task 的输出作为 context，并且还会收到：
+    审核并整合本轮搜索结果，生成"给用户看的报告 + 给 Flow 用的下一轮决策"。
+    
+    【重要】你已激活 contact-organizer skill，该skill提供整理和报告能力，但输出格式必须严格遵循本Task的expected_output定义（OrganizeTaskOutput）。
+    
+    【输入格式】你将获得 normal_search_task 的输出（NormalSearchTaskOutput格式）作为 context，并且还会收到：
     - user_query: {user_query}
     - flow_id: {flow_id}
     - round_index: {round_index}
@@ -71,9 +75,15 @@ organize_task:
     1. 将同一公司的不同别名、不同来源结果合并到同一条公司记录下。
     2. 去除重复联系方式，保留最可靠、最可执行的联系方式。
     3. 逐家公司判断联系方式完整性：complete / partial / insufficient。
-    4. 只把“仍然重要且仍然缺关键字段或关键证据”的公司放入 next_round_deep_search_companies。
+    4. 只把"仍然重要且仍然缺关键字段或关键证据"的公司放入 next_round_deep_search_companies。
     5. 生成一份用户可读的 markdown 报告，报告中要体现：公司、官网、已找到的联系方式、缺失项、可信度判断。
-    6. 在输出中明确写出本轮搜索过的公司，方便 organizer 在每轮结束前沉淀“已搜索公司”记忆。
+    6. 在输出中明确写出本轮搜索过的公司，方便 organizer 在每轮结束前沉淀"已搜索公司"记忆。
+
+    【重要】在决定 next_round_deep_search_companies 时，请考虑以下因素：
+    - 该公司是否已经在 already_seen_companies 中出现过？（如果出现多次，说明可能已经充分搜索）
+    - 该公司的缺失字段是否可能找到？（例如：whatsapp、linkedin 可能没有公开信息）
+    - 该公司是否已经"充分搜索"？（例如：已经搜索了官网、LinkedIn、企业目录等多个来源）
+    - 如果连续两次搜索都没有新发现，建议不要再放入 next_round_deep_search_companies
 
     你不是再次搜索，而是做整合、判断与轮次决策。
   expected_output: >

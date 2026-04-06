@@ -1,0 +1,230 @@
+{
+  "user_query": "帮我找尽可能多的巴基斯坦的太阳能冰箱提供商的联系方式",
+  "current_year": 2026,
+  "max_rounds": 4,
+  "max_companies_per_round": 10,
+  "round_index": 2,
+  "search_mode": "deep",
+  "should_continue": false,
+  "stop_reason": "no_more_deep_search_targets",
+  "already_seen_companies": [
+    "Haroon Brothers",
+    "Sogo Home Store",
+    "HPs Solar Fridge Company"
+  ],
+  "searched_companies_history": [
+    "Haroon Brothers",
+    "Sogo Home Store",
+    "HPs Solar Fridge Company"
+  ],
+  "all_known_companies": [
+    "Haroon Brothers",
+    "Sogo Home Store",
+    "HPs Solar Fridge Company"
+  ],
+  "next_round_deep_search_companies": [],
+  "final_company_records": [
+    {
+      "company_name": "Haroon Brothers",
+      "country": "Pakistan",
+      "website": "https://haroonbrothers.com",
+      "best_contact_channels": {
+        "emails": [
+          "info@haroonbrothers.com",
+          "info@haroonbothers.com"
+        ],
+        "phones": [
+          "+92 42 36604623"
+        ],
+        "whatsapp": [
+          "0300 9453534"
+        ],
+        "linkedin": [
+          "https://pk.linkedin.com/company/haroon-brothers"
+        ],
+        "contact_forms": [
+          "https://haroonbrothers.com/contact-us/"
+        ],
+        "other_channels": [
+          "https://www.facebook.com/HaroonBrothers.pk/"
+        ]
+      },
+      "completeness_status": "complete",
+      "missing_fields": [],
+      "evidence_quality": "high"
+    },
+    {
+      "company_name": "HPs Solar Fridge Company",
+      "country": "Pakistan",
+      "website": "https://www.facebook.com/HPsPAK/",
+      "best_contact_channels": {
+        "emails": [],
+        "phones": [
+          "923217080575"
+        ],
+        "whatsapp": [
+          "wa.me/923217080575"
+        ],
+        "linkedin": [],
+        "contact_forms": [],
+        "other_channels": [
+          "https://www.facebook.com/HPsPAK/"
+        ]
+      },
+      "completeness_status": "partial",
+      "missing_fields": [
+        "emails",
+        "linkedin",
+        "contact_forms"
+      ],
+      "evidence_quality": "medium"
+    },
+    {
+      "company_name": "Sogo Home Store",
+      "country": "Pakistan",
+      "website": "https://www.sogohomestore.pk",
+      "best_contact_channels": {
+        "emails": [
+          "contact@sogohomestore.pk"
+        ],
+        "phones": [
+          "03111133301",
+          "021 34522286",
+          "021 3452286",
+          "0311 1133301"
+        ],
+        "whatsapp": [
+          "0311 1133301",
+          "+92 0311 1133301"
+        ],
+        "linkedin": [
+          "https://pk.linkedin.com/company/sogo-home-store"
+        ],
+        "contact_forms": [
+          "https://www.sogohomestore.pk/pages/contact-us"
+        ],
+        "other_channels": [
+          "https://www.instagram.com/sogohomestore/",
+          "https://www.facebook.com/sogohomestore"
+        ]
+      },
+      "completeness_status": "complete",
+      "missing_fields": [],
+      "evidence_quality": "high"
+    }
+  ],
+  "latest_crew_output": {
+    "round_index": 2,
+    "should_continue": false,
+    "searched_companies_this_round": [
+      "Haroon Brothers",
+      "Sogo Home Store",
+      "HPs Solar Fridge Company"
+    ],
+    "all_known_companies_after_merge": [
+      "Haroon Brothers",
+      "Sogo Home Store",
+      "HPs Solar Fridge Company"
+    ],
+    "next_round_deep_search_companies": [],
+    "final_company_records": [
+      {
+        "company_name": "Haroon Brothers",
+        "country": "Pakistan",
+        "website": "https://haroonbrothers.com",
+        "best_contact_channels": {
+          "emails": [
+            "info@haroonbrothers.com",
+            "info@haroonbothers.com"
+          ],
+          "phones": [
+            "+92 42 36604623"
+          ],
+          "whatsapp": [
+            "0300 9453534"
+          ],
+          "linkedin": [
+            "https://pk.linkedin.com/company/haroon-brothers"
+          ],
+          "contact_forms": [
+            "https://haroonbrothers.com/contact-us/"
+          ],
+          "other_channels": [
+            "https://www.facebook.com/HaroonBrothers.pk/"
+          ]
+        },
+        "completeness_status": "complete",
+        "missing_fields": [],
+        "evidence_quality": "high"
+      },
+      {
+        "company_name": "Sogo Home Store",
+        "country": "Pakistan",
+        "website": "https://www.sogohomestore.pk",
+        "best_contact_channels": {
+          "emails": [
+            "contact@sogohomestore.pk"
+          ],
+          "phones": [
+            "021 3452286",
+            "0311 1133301"
+          ],
+          "whatsapp": [
+            "+92 0311 1133301"
+          ],
+          "linkedin": [
+            "https://pk.linkedin.com/company/sogo-home-store"
+          ],
+          "contact_forms": [
+            "https://www.sogohomestore.pk/pages/contact-us"
+          ],
+          "other_channels": [
+            "https://www.instagram.com/sogohomestore/",
+            "https://www.facebook.com/sogohomestore"
+          ]
+        },
+        "completeness_status": "complete",
+        "missing_fields": [],
+        "evidence_quality": "high"
+      },
+      {
+        "company_name": "HPs Solar Fridge Company",
+        "country": "Pakistan",
+        "website": null,
+        "best_contact_channels": {
+          "emails": [],
+          "phones": [
+            "923217080575"
+          ],
+          "whatsapp": [
+            "wa.me/923217080575"
+          ],
+          "linkedin": [],
+          "contact_forms": [],
+          "other_channels": [
+            "https://www.facebook.com/HPsPAK/"
+          ]
+        },
+        "completeness_status": "insufficient",
+        "missing_fields": [
+          "email",
+          "linkedin",
+          "contact_forms",
+          "other_social_media",
+          "official_website"
+        ],
+        "evidence_quality": "low"
+      }
+    ],
+    "report_markdown": "# 巴基斯坦太阳能冰箱提供商联系方式搜索报告（第2轮）\n\n## 执行摘要\n\n本轮对3家目标公司进行了深度搜索，成功补全了Haroon Brothers和Sogo Home Store的缺失联系方式，两家公司已达到完整状态。HPs Solar Fridge Company因缺乏官方网站和正式联系渠道，信息仍不充分。建议结束本轮搜索，已获得两家高质量供应商的完整联系方式。\n\n## 公司详情\n\n### 1. Haroon Brothers\n- **国家**: Pakistan\n- **官方网站**: https://haroonbrothers.com\n- **公司简介**: 巴基斯坦拉合尔的太阳能冰箱、太阳能电力解决方案和工业自动化供应商\n- **已找到的联系方式**:\n  - **邮箱**: info@haroonbrothers.com, info@haroonbothers.com\n  - **电话**: +92 42 36604623\n  - **WhatsApp**: 0300 9453534\n  - **LinkedIn**: https://pk.linkedin.com/company/haroon-brothers\n  - **联系表单**: https://haroonbrothers.com/contact-us/\n  - **其他渠道**: https://www.facebook.com/HaroonBrothers.pk/\n- **缺失项**: 无\n- **可信度判断**: 高（所有联系方式均来自官方网站或官方社交媒体页面）\n- **完整性状态**: 完整\n\n### 2. Sogo Home Store\n- **国家**: Pakistan\n- **官方网站**: https://www.sogohomestore.pk\n- **公司简介**: 巴基斯坦卡拉奇的零售商，销售家用电器、可充电产品和太阳能冰箱\n- **已找到的联系方式**:\n  - **邮箱**: contact@sogohomestore.pk\n  - **电话**: 021 3452286, 0311 1133301\n  - **WhatsApp**: +92 0311 1133301\n  - **LinkedIn**: https://pk.linkedin.com/company/sogo-home-store\n  - **联系表单**: https://www.sogohomestore.pk/pages/contact-us\n  - **其他渠道**: https://www.instagram.com/sogohomestore/, https://www.facebook.com/sogohomestore\n- **缺失项**: 无\n- **可信度判断**: 高（所有联系方式均来自官方网站或官方社交媒体页面）\n- **完整性状态**: 完整\n\n### 3. HPs Solar Fridge Company\n- **国家**: Pakistan\n- **官方网站**: 未找到\n- **公司简介**: 巴基斯坦公司，提供12V直流太阳能冰箱和冰柜，主要通过Facebook推广\n- **已找到的联系方式**:\n  - **邮箱**: 未找到\n  - **电话**: 923217080575\n  - **WhatsApp**: wa.me/923217080575\n  - **LinkedIn**: 未找到\n  - **联系表单**: 未找到\n  - **其他渠道**: https://www.facebook.com/HPsPAK/\n- **缺失项**: \n  - 官方邮箱\n  - LinkedIn页面\n  - 联系表单\n  - 其他社交媒体平台\n  - 官方网站\n- **可信度判断**: 低（仅通过Facebook页面联系，缺乏官方渠道）\n- **完整性状态**: 不充分\n\n## 搜索统计\n- **本轮搜索公司数**: 3家\n- **达到完整状态的公司**: 2家（Haroon Brothers, Sogo Home Store）\n- **信息不充分公司**: 1家（HPs Solar Fridge Company）\n- **总已知公司数**: 3家\n\n## 建议与下一步\n\n1. **Haroon Brothers**和**Sogo Home Store**已具备完整的联系方式，可直接用于业务联系。\n2. **HPs Solar Fridge Company**由于缺乏官方网站和正式联系渠道，信息质量较低，建议作为备选或通过Facebook渠道联系。\n3. 本轮深度搜索已成功补全了两家主要供应商的缺失信息，建议结束本轮搜索流程。\n\n---\n*报告生成时间：第2轮搜索结束*",
+    "memory_update_notes": {
+      "organizer_should_remember_companies": [
+        "Haroon Brothers",
+        "Sogo Home Store",
+        "HPs Solar Fridge Company"
+      ],
+      "organizer_round_summary": "第2轮深度搜索成功补全了Haroon Brothers和Sogo Home Store的缺失联系方式，两家公司已达到完整状态。HPs Solar Fridge Company因缺乏官方网站和正式联系渠道，信息仍不充分。已决定不再进行下一轮深度搜索，本轮搜索流程结束。"
+    }
+  },
+  "organizer_memory_log": []
+}

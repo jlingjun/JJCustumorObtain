@@ -1,61 +1,50 @@
 ---
 name: contact-search
 description: |
-  企业联系方式搜索与发现技能。用于搜索公司信息、提取联系方式（邮箱、电话、WhatsApp、LinkedIn等）。
+  企业联系方式搜索与发现技能。提供搜索公司信息、提取联系方式的能力集合。
   
-  当用户需要以下操作时触发此技能：
+  当agent需要以下操作时可使用此skill：
   - 搜索公司或企业的联系信息
   - 查找特定公司的邮箱、电话、WhatsApp等联系方式
-  - 对公司进行浅层或深度的信息收集
   - 从网站提取联系人信息
-  - 批量搜索多家公司的联系方式
+  - 执行浅层或深度的信息收集
   
-  即使是简单的"帮我找某公司的联系方式"或"搜索XX公司的信息"等请求，也应使用此技能。
+  注意：此skill提供能力和工具，具体输出格式由Task定义。
 allowed-tools: TavilySearchTool, SpiderSinglePageContactTool, TavilySiteContactCrawlTool
 ---
 
 # Contact Search Skill
 
-企业联系方式搜索与发现技能，提供从需求解析到深度爬取的完整解决方案。
+企业联系方式搜索与发现技能，提供从需求解析到深度爬取的能力集合。
 
-## 核心工作流程
+## ⚠️ 重要说明
 
-```
-用户输入
-    ↓
-【Phase 1: 需求解析】
-    ├─ 理解用户意图
-    ├─ 识别搜索对象（公司/行业/地区）
-    └─ 生成多样化搜索查询
-    ↓
-【Phase 2: 浅搜索】（可选）
-    ├─ 执行搜索查询
-    ├─ 累积所有结果
-    ├─ 去重和过滤
-    └─ 评估是否需要深搜索
-    ↓
-【Phase 3: 深搜索】（如需要）
-    ├─ 站点爬取（TavilySiteContactCrawlTool）
-    └─ 或单页面抓取（SpiderSinglePageContactTool）
-    ↓
-【输出】
-    └─ 结构化JSON结果
-```
+**此skill只提供能力和工具，不定义输出格式。**
 
-## Phase 1: 需求解析
+- ✅ 提供搜索工具和方法
+- ✅ 提供最佳实践指导
+- ✅ 提供辅助脚本
+- ❌ **不定义输出格式**（由Task的expected_output定义）
+- ❌ **不定义完整工作流程**（由Task的description定义）
 
-### 理解用户意图
+**输出格式必须严格遵循Task的expected_output定义（NormalSearchTaskOutput）。**
 
-**你需要自主决定**：
+## 核心能力
+
+### 1. 需求解析能力
+
+**自主决策**：
 - 识别搜索对象（特定公司 vs 行业提供商）
 - 确定需要的联系方式类型
 - 决定搜索策略（速度优先 vs 完整性优先）
 - 生成多样化的搜索查询
 
-### 查询生成原则
+### 2. 浅搜索能力
 
-**你应该**：
-- 根据用户需求灵活调整查询数量（不必局限于固定数量）
+使用TavilySearchTool执行网络搜索。
+
+**查询生成原则**：
+- 根据用户需求灵活调整查询数量
 - 使用多角度覆盖：官网、联系方式、社交媒体、行业目录
 - 尝试语言变体：中英文查询
 - 包含地域关键词（如果用户指定了地区）
@@ -74,59 +63,13 @@ allowed-tools: TavilySearchTool, SpiderSinglePageContactTool, TavilySiteContactC
  "site:linkedin.com {region} {industry}"]
 ```
 
-## Phase 2: 浅搜索
+**关键原则**：
+- **必须累积所有查询的结果**，不能只保留最后一个！
+- 根据结果质量动态调整策略
 
-### 使用现成脚本
+### 3. 深搜索能力
 
-**重要**：你有一个现成的脚本可以直接使用！
-
-```python
-from scripts.search_executor import execute_shallow_search, aggregate_shallow_results
-
-# 方式1: 使用完整流程
-results = execute_shallow_search(intents, search_tool)
-
-# 方式2: 自己控制流程
-all_items = []
-for query in your_queries:  # 你决定执行多少个查询
-    result = search_tool._run(query=query, search_depth="basic", max_results=5)
-    items = result.get("results", [])
-    all_items.extend(items)
-
-# 使用聚合函数去重和提取
-aggregated = aggregate_shallow_results(company_name, all_items, required_types)
-```
-
-### 关键原则
-
-**必须累积所有查询的结果**，不能只保留最后一个！
-
-```python
-# ❌ 错误：只保留最后一个
-for query in queries:
-    result = search_tool._run(query=query)
-    final_result = result  # 覆盖了之前的结果！
-
-# ✅ 正确：累积所有结果
-all_results = []
-for query in queries:
-    result = search_tool._run(query=query)
-    items = result.get("results", [])
-    all_results.extend(items)  # 累积
-```
-
-### 自主决策
-
-**你应该根据情况决定**：
-- 执行多少个查询？（根据结果质量动态调整）
-- 使用什么搜索深度？（basic vs advanced）
-- 每个查询返回多少结果？（3-10个）
-- 是否需要深搜索？（根据浅搜索结果判断）
-
-## Phase 3: 深搜索
-
-### 决策树
-
+**决策树**：
 ```
 是否知道具体页面URL？
 ├─ 是 → SpiderSinglePageContactTool
@@ -135,80 +78,7 @@ for query in queries:
     └─ 否 → 先浅搜索，再根据结果决定
 ```
 
-### 使用现成脚本
-
-```python
-from scripts.search_executor import execute_deep_search, crawl_single_site, spider_single_page
-
-# 方式1: 使用完整流程
-deep_results = execute_deep_search(shallow_results, crawl_tool, spider_tool)
-
-# 方式2: 单独调用
-result = crawl_single_site(company_name, website_url, crawl_tool)
-result = spider_single_page(company_name, page_url, spider_tool)
-```
-
-## 输出格式
-
-**必须输出结构化的 JSON 格式**：
-
-```json
-{
-  "search_summary": {
-    "total_companies": 1,
-    "successful": 0,
-    "partial": 1,
-    "failed": 0,
-    "total_contacts": 5
-  },
-  "companies": [
-    {
-      "company_name": "公司名称",
-      "website_url": "https://example.com",
-      "search_status": "partial",
-      "contacts": [
-        {
-          "type": "email",
-          "value": "contact@example.com",
-          "normalized": "contact@example.com",
-          "source_url": "https://example.com/contact",
-          "confidence": 0.9
-        }
-      ],
-      "source_urls": ["https://example.com/contact"],
-      "missing_info": ["no_whatsapp"]
-    }
-  ],
-  "suggestions": ["可以尝试搜索 WhatsApp 官方账号"]
-}
-```
-
-## 可用脚本
-
-本 skill 提供了完整的辅助脚本 `scripts/search_executor.py`：
-
-### 核心函数
-
-- `execute_shallow_search(intents, search_tool)` - 执行浅搜索（包含累积和去重）
-- `aggregate_shallow_results(company_name, search_items, required_types)` - 聚合和去重结果
-- `extract_contacts_from_text(text, source_url)` - 从文本提取联系方式
-- `execute_deep_search(shallow_results, crawl_tool, spider_tool)` - 执行深搜索
-- `crawl_single_site(company_name, website_url, crawl_tool)` - 爬取单个站点
-- `spider_single_page(company_name, page_url, spider_tool)` - 抓取单个页面
-
-### 使用建议
-
-**推荐使用脚本**，因为：
-1. 已经实现了累积和去重逻辑
-2. 经过测试和优化
-3. 可以节省你的时间和token
-
-**但你有完全的自主权**：
-- 如果脚本不符合你的需求，可以自己实现
-- 可以修改脚本的参数（查询数量、搜索深度等）
-- 可以组合使用脚本函数和自己的逻辑
-
-## 工具说明
+## 可用工具
 
 ### TavilySearchTool
 
@@ -238,14 +108,30 @@ result = spider_single_page(company_name, page_url, spider_tool)
 - `url`: 页面URL
 - `extract_contacts`: 是否提取联系方式（默认True）
 
-## 置信度过滤
+## 辅助脚本
 
-**重要**：所有输出的联系方式置信度必须 ≥ 0.7
+本skill提供了辅助脚本 `scripts/search_executor.py`：
 
-- **0.9-1.0**: mailto链接、tel链接、官方联系页面
-- **0.8-0.9**: 官方网站、LinkedIn等权威来源
-- **0.7-0.8**: 可靠的第三方网站
-- **<0.7**: 必须过滤掉
+### 核心函数
+
+- `execute_shallow_search(intents, search_tool)` - 执行浅搜索（包含累积和去重）
+- `aggregate_shallow_results(company_name, search_items, required_types)` - 聚合和去重结果
+- `extract_contacts_from_text(text, source_url)` - 从文本提取联系方式
+- `execute_deep_search(shallow_results, crawl_tool, spider_tool)` - 执行深搜索
+- `crawl_single_site(company_name, website_url, crawl_tool)` - 爬取单个站点
+- `spider_single_page(company_name, page_url, spider_tool)` - 抓取单个页面
+
+### 使用建议
+
+**推荐使用脚本**，因为：
+1. 已经实现了累积和去重逻辑
+2. 经过测试和优化
+3. 可以节省时间和token
+
+**但你有完全的自主权**：
+- 如果脚本不符合你的需求，可以自己实现
+- 可以修改脚本的参数（查询数量、搜索深度等）
+- 可以组合使用脚本函数和自己的逻辑
 
 ## 最佳实践
 
@@ -282,6 +168,22 @@ for query in queries:
         continue
 ```
 
+### 4. 置信度过滤
+
+**重要**：所有输出的联系方式置信度必须 ≥ 0.7
+
+- **0.9-1.0**: mailto链接、tel链接、官方联系页面
+- **0.8-0.9**: 官方网站、LinkedIn等权威来源
+- **0.7-0.8**: 可靠的第三方网站
+- **<0.7**: 必须过滤掉
+
+### 5. 证据保留
+
+**每条联系方式都必须包含**：
+- `source_url`: 来源URL
+- `evidence`: 简短证据描述
+- `confidence`: 置信度评分
+
 ## 参考文档
 
 - [references/shallow-search.md](references/shallow-search.md) - 浅搜索详细指南
@@ -290,9 +192,11 @@ for query in queries:
 
 ---
 
-**核心原则**：
-- 你有完全的自主权决定搜索策略
-- 使用现成脚本可以节省时间和token
-- 必须累积所有查询的结果
-- 必须输出结构化的JSON格式
-- 所有联系方式置信度必须 ≥ 0.7
+## ⚠️ 核心原则
+
+1. **输出格式由Task定义**，不是由skill定义
+2. 你有完全的自主权决定搜索策略
+3. 使用现成脚本可以节省时间和token
+4. 必须累积所有查询的结果
+5. 所有联系方式置信度必须 ≥ 0.7
+6. 每条联系方式都必须有source_url和evidence

@@ -28,6 +28,14 @@ os.environ["CREWAI_STORAGE_DIR"] = str(custom_storage_dir)
 # =========================
 
 
+class CompanySearchRecord(BaseModel):
+    company_name: str
+    search_count: int = 0
+    last_search_round: int = 0
+    contacts_found_count: int = 0
+    missing_fields_history: List[List[str]] = Field(default_factory=list)
+
+
 class DeepSearchTargetState(BaseModel):
     company_name: str
     missing_fields: List[str] = Field(default_factory=list)
@@ -74,6 +82,7 @@ class ContactDiscoveryState(BaseModel):
     already_seen_companies: List[str] = Field(default_factory=list)
     searched_companies_history: List[str] = Field(default_factory=list)
     all_known_companies: List[str] = Field(default_factory=list)
+    company_search_records: Dict[str, CompanySearchRecord] = Field(default_factory=dict)
     next_round_deep_search_companies: List[DeepSearchTargetState] = Field(
         default_factory=list
     )
@@ -266,6 +275,8 @@ class ContactDiscoveryFlow(Flow[ContactDiscoveryState]):
             payload.get("final_company_records", []),
         )
 
+        self._update_company_search_records(payload, searched_this_round)
+
         self._store_round_memories(crew_instance,payload, searched_this_round)
 
         return payload
@@ -335,6 +346,52 @@ class ContactDiscoveryFlow(Flow[ContactDiscoveryState]):
     # =========================
     # Internal helpers
     # =========================
+
+    def _update_company_search_records(
+        self,
+        organize_payload: Dict[str, Any],
+        searched_this_round: List[str],
+    ) -> None:
+        """Update company search records with current round information.
+        
+        This method tracks how many times each company has been searched,
+        what contacts were found, and what fields are still missing.
+        """
+        final_company_records = organize_payload.get("final_company_records", [])
+        
+        for company_data in final_company_records:
+            company_name = company_data.get("company_name", "")
+            if not company_name:
+                continue
+            
+            canonical_name = self._canonical_key(company_name)
+            
+            channels = company_data.get("best_contact_channels", {})
+            contacts_count = sum([
+                len(channels.get("emails", [])),
+                len(channels.get("phones", [])),
+                len(channels.get("whatsapp", [])),
+                len(channels.get("linkedin", [])),
+                len(channels.get("contact_forms", [])),
+                len(channels.get("other_channels", [])),
+            ])
+            
+            missing_fields = company_data.get("missing_fields", [])
+            
+            if canonical_name not in self.state.company_search_records:
+                self.state.company_search_records[canonical_name] = CompanySearchRecord(
+                    company_name=company_name,
+                    search_count=1,
+                    last_search_round=self.state.round_index,
+                    contacts_found_count=contacts_count,
+                    missing_fields_history=[missing_fields],
+                )
+            else:
+                record = self.state.company_search_records[canonical_name]
+                record.search_count += 1
+                record.last_search_round = self.state.round_index
+                record.contacts_found_count = contacts_count
+                record.missing_fields_history.append(missing_fields)
 
     def _store_round_memories(
         self,
@@ -469,8 +526,7 @@ class ContactDiscoveryFlow(Flow[ContactDiscoveryState]):
     def _canonical_key(text: str) -> str:
         return " ".join(text.strip().lower().split())
 
-    @classmethod
-    def _normalize_targets(cls, value: Any) -> List[DeepSearchTargetState]:
+    def _normalize_targets(self, value: Any) -> List[DeepSearchTargetState]:
         if value is None:
             return []
         if not isinstance(value, list):
@@ -495,9 +551,18 @@ class ContactDiscoveryFlow(Flow[ContactDiscoveryState]):
 
             if not target.company_name:
                 continue
-            key = cls._canonical_key(target.company_name)
+            key = self._canonical_key(target.company_name)
             if key in seen:
                 continue
+            
+            # Filter out companies that have been searched too many times
+            max_search_count = 2
+            if key in self.state.company_search_records:
+                record = self.state.company_search_records[key]
+                if record.search_count >= max_search_count:
+                    print(f"[INFO] Skipping {target.company_name}: already searched {record.search_count} times")
+                    continue
+            
             seen.add(key)
             normalized.append(target)
         return normalized
@@ -711,10 +776,10 @@ class ContactDiscoveryFlow(Flow[ContactDiscoveryState]):
             "organizer_memory_log": self.state.organizer_memory_log,
         }
 
-        with open("output/contact_discovery_result.json", "w", encoding="utf-8") as f:
+        with open(f"output/{self.state.id}_contact_discovery_result.json", "w", encoding="utf-8") as f:
             json.dump(result_payload, f, ensure_ascii=False, indent=2)
 
-        with open("output/contact_discovery_report.md", "w", encoding="utf-8") as f:
+        with open(f"output/{self.state.id}_contact_discovery_report.md", "w", encoding="utf-8") as f:
             f.write(self.state.final_report_markdown or self._build_final_report())
 
 
