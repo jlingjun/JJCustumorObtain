@@ -12,6 +12,7 @@ normal_search_task:
     - max_companies_per_round: {max_companies_per_round}
     - already_seen_companies: {already_seen_companies}
     - target_companies_for_deep_search: {target_companies_for_deep_search}
+    - searcher_memory_context: {searcher_memory_context}
 
     执行规则：
     1. 当 search_mode=broad 时：围绕用户的国家、行业、产品或公司条件，优先发现新的相关公司，并尽可能提取邮箱、电话、WhatsApp、LinkedIn、联系表单等公开联系方式。
@@ -24,38 +25,10 @@ normal_search_task:
 
     只输出有证据支撑的公司，不要输出猜测项，不要撰写最终结论报告。
   expected_output: >
-    返回且仅返回一个合法 JSON 对象，不要使用 markdown，不要使用代码块。
+    直接输出一个合法的 JSON 对象，不要有任何前缀文字、后缀说明、或 markdown 代码块。
 
-    JSON schema:
-    {
-      "round_index": 1,
-      "search_mode": "broad or deep",
-      "user_query": "string",
-      "researched_companies": [
-        {
-          "company_name": "string",
-          "canonical_company_name": "string",
-          "country": "string or null",
-          "website": "string or null",
-          "company_profile_summary": "string",
-          "contacts": {
-            "emails": [{"value": "string", "source_url": "string", "evidence": "string", "confidence": "high|medium|low"}],
-            "phones": [{"value": "string", "source_url": "string", "evidence": "string", "confidence": "high|medium|low"}],
-            "whatsapp": [{"value": "string", "source_url": "string", "evidence": "string", "confidence": "high|medium|low"}],
-            "linkedin": [{"value": "string", "source_url": "string", "evidence": "string", "confidence": "high|medium|low"}],
-            "contact_forms": [{"value": "string", "source_url": "string", "evidence": "string", "confidence": "high|medium|low"}],
-            "other_channels": [{"value": "string", "source_url": "string", "evidence": "string", "confidence": "high|medium|low"}]
-          },
-          "evidence_urls": ["string"],
-          "completeness_status": "complete|partial|insufficient",
-          "missing_fields": ["string"],
-          "search_notes": "string"
-        }
-      ],
-      "new_company_names_discovered": ["string"],
-      "companies_skipped_as_already_covered": ["string"],
-      "dedup_notes": ["string"]
-    }
+    JSON 结构：
+    {"round_index": 1, "search_mode": "broad或deep", "user_query": "...", "researched_companies": [...], "new_company_names_discovered": [...], "companies_skipped_as_already_covered": [...], "dedup_notes": [...]}
   agent: searcher
 
 organize_task:
@@ -70,6 +43,7 @@ organize_task:
     - round_index: {round_index}
     - already_seen_companies: {already_seen_companies}
     - target_companies_for_deep_search: {target_companies_for_deep_search}
+    - organizer_memory_context: {organizer_memory_context}
 
     你的职责：
     1. 将同一公司的不同别名、不同来源结果合并到同一条公司记录下。
@@ -78,6 +52,7 @@ organize_task:
     4. 只把"仍然重要且仍然缺关键字段或关键证据"的公司放入 next_round_deep_search_companies。
     5. 生成一份用户可读的 markdown 报告，报告中要体现：公司、官网、已找到的联系方式、缺失项、可信度判断。
     6. 在输出中明确写出本轮搜索过的公司，方便 organizer 在每轮结束前沉淀"已搜索公司"记忆。
+    7. 参考 organizer_memory_context 中的历史决策，避免重复把连续无增量的公司放入下一轮深搜目标。
 
     【重要】在决定 next_round_deep_search_companies 时，请考虑以下因素：
     - 该公司是否已经在 already_seen_companies 中出现过？（如果出现多次，说明可能已经充分搜索）
@@ -87,51 +62,10 @@ organize_task:
 
     你不是再次搜索，而是做整合、判断与轮次决策。
   expected_output: >
-    返回且仅返回一个合法 JSON 对象，不要使用 markdown 代码块。
+    直接输出一个合法的 JSON 对象，不要有任何前缀文字、后缀说明、或 markdown 代码块。
 
-    JSON schema:
-    {
-      "round_index": 1,
-      "should_continue": true,
-      "searched_companies_this_round": ["string"],
-      "all_known_companies_after_merge": ["string"],
-      "next_round_deep_search_companies": [
-        {
-          "company_name": "string",
-          "missing_fields": ["string"],
-          "reason_for_deep_search": "string",
-          "priority": "high|medium|low"
-        }
-      ],
-      "final_company_records": [
-        {
-          "company_name": "string",
-          "country": "string or null",
-          "website": "string or null",
-          "best_contact_channels": {
-            "emails": ["string"],
-            "phones": ["string"],
-            "whatsapp": ["string"],
-            "linkedin": ["string"],
-            "contact_forms": ["string"],
-            "other_channels": ["string"]
-          },
-          "completeness_status": "complete|partial|insufficient",
-          "missing_fields": ["string"],
-          "evidence_quality": "high|medium|low"
-        }
-      ],
-      "report_markdown": "string",
-      "memory_update_notes": {
-        "organizer_should_remember_companies": ["string"],
-        "organizer_round_summary": "string"
-      }
-    }
-
-    规则：
-    - 如果 next_round_deep_search_companies 为空，则 should_continue 必须为 false。
-    - 如果 next_round_deep_search_companies 非空，则 should_continue 必须为 true。
-    - report_markdown 必须可直接作为最终报告正文或后续 PDF 渲染输入。
+    JSON 结构：
+    {"round_index": 1, "should_continue": true/false, "searched_companies_this_round": [...], "all_known_companies_after_merge": [...], "next_round_deep_search_companies": [...], "final_company_records": [...], "report_markdown": "...", "memory_update_notes": {...}}
   agent: organizer
   context:
     - normal_search_task

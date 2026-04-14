@@ -3,13 +3,13 @@
 
 from typing import Any, Dict, List, Literal
 
-from crewai import Agent, Crew, Memory, Process, Task
+from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, after_kickoff, agent, before_kickoff, crew, task
 from pydantic import BaseModel, Field
 from crewai_tools import TavilySearchTool, FileWriterTool, FileReadTool
 from cobtainflow.tools import TavilySiteContactCrawlTool, SpiderSinglePageContactTool
 from crewai.agents.agent_builder.base_agent import BaseAgent
-from openai import OpenAI
+from cobtainflow.memory_factory import get_shared_memory
 
 # =========================
 # Structured output schemas
@@ -129,6 +129,8 @@ class ContactDiscoveryCrew():
         normalized.setdefault("round_index", 1)
         normalized.setdefault("search_mode", "broad")
         normalized.setdefault("max_companies_per_round", 10)
+        normalized.setdefault("searcher_memory_context", "")
+        normalized.setdefault("organizer_memory_context", "")
 
         normalized["already_seen_companies"] = self._normalize_string_list(
             normalized.get("already_seen_companies")
@@ -163,32 +165,8 @@ class ContactDiscoveryCrew():
     
     
     # ---------- memory ----------
-    def my_embedder(self, texts: list[str]) -> list[list[float]]:
-        import traceback as _tb
-        _dimensions = 1024
-        try:
-            client = OpenAI(
-                api_key=os.getenv("EMBEDDING_API_KEY"),
-                base_url=os.getenv("EMBEDDING_BASE_URL"),
-            )
-            batch_size = 10
-            all_embeddings: list[list[float]] = []
-            for i in range(0, len(texts), batch_size):
-                batch = texts[i:i + batch_size]
-                completion = client.embeddings.create(
-                    model="text-embedding-v4",
-                    input=batch,
-                    dimensions=_dimensions,
-                    encoding_format="float",
-                )
-                all_embeddings.extend([item.embedding for item in completion.data])
-            return all_embeddings
-        except Exception as exc:
-            print(f"[WARN] Embedding failed ({type(exc).__name__}: {exc}), returning zero vectors")
-            return [[0.0] * _dimensions for _ in texts]
-    
-    def _shared_memory(self) -> Memory:
-        return Memory(llm="deepseek/DeepSeek-V3.2", embedder=self.my_embedder)
+    def _shared_memory(self):
+        return get_shared_memory()
 
 
     # ---------- agents ----------

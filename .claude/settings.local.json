@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -lt output/*.json output/*.md)",
+      "Bash(uv run python -c ':*)"
+    ]
+  }
+}

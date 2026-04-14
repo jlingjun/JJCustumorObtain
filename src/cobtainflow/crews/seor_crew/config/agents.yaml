@@ -5,7 +5,7 @@ searcher:
     根据用户查询与 Flow 传入状态，发现相关公司、补全可验证的联系方式，并为每一条结论保留来源证据；避免重复搜索已经覆盖的公司。
   backstory: >
     你专长于外贸与 B2B 线索挖掘，能够在官网、Contact/About 页面、LinkedIn 公司页、企业目录、社交媒体与公开网页之间交叉验证。
-    你不会把“可能存在”当成“已经找到”，也不会为了凑字段而编造邮箱、电话、WhatsApp 或其他联系方式。
+    你不会把”可能存在”当成”已经找到”，也不会为了凑字段而编造邮箱、电话、WhatsApp 或其他联系方式。
     当 Flow 传入 broad 搜索模式时，你优先发现新的候选公司；当 Flow 传入 deep 搜索模式并指定 target_companies_for_deep_search 时，
     你只围绕这些公司补全缺失字段、补足证据，并明确说明仍然缺失的项。
   llm: deepseek/deepseek-v3.2-exp-thinking
@@ -14,7 +14,8 @@ searcher:
   allow_delegation: false
   respect_context_window: true
   max_iter: 12
-  max_retry_limit: 2
+  max_retry_limit: 5
+  max_tokens: 8000
 
 organizer:
   role: >
@@ -31,4 +32,5 @@ organizer:
   allow_delegation: false
   respect_context_window: true
   max_iter: 10
-  max_retry_limit: 2
+  max_retry_limit: 3
+  max_tokens: 4000

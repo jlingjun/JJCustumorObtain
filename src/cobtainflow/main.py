@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 from pathlib import Path
 from datetime import date
 from typing import Any, Dict, List, Literal, Optional
@@ -16,6 +17,15 @@ dotenv.load_dotenv()
 # Package-style is the default shape shown in CrewAI flow docs.
 
 from cobtainflow.crews.seor_crew.seor_crew import ContactDiscoveryCrew  # type: ignore
+from cobtainflow.memory_factory import get_shared_memory
+
+# Fix Windows console encoding for emoji output
+if sys.platform == 'win32':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
 
 # Set custom Memory storage directory
 custom_storage_dir = Path(__file__).parent.parent.parent.parent / "memory"
@@ -177,6 +187,17 @@ class ContactDiscoveryFlow(Flow[ContactDiscoveryState]):
 
     def _execute_crew_round(self) -> Dict[str, Any]:
         """Shared crew round execution logic (extracted to avoid or_() single-fire limitation)."""
+        searcher_memory_context = self._recall_scope_as_text(
+            scope=f"/flow/{self.state.id}/agent/searcher",
+            query=f"search strategy and searched companies for {self.state.user_query}",
+            limit=5,
+        )
+        organizer_memory_context = self._recall_scope_as_text(
+            scope=f"/flow/{self.state.id}/agent/organizer",
+            query=f"organizer decisions and deep search targets for {self.state.user_query}",
+            limit=5,
+        )
+
         crew_inputs = {
             "flow_id": self.state.id,
             "user_query": self.state.user_query,
@@ -188,6 +209,8 @@ class ContactDiscoveryFlow(Flow[ContactDiscoveryState]):
             "target_companies_for_deep_search": [
                 target.model_dump() for target in self.state.next_round_deep_search_companies
             ],
+            "searcher_memory_context": searcher_memory_context,
+            "organizer_memory_context": organizer_memory_context,
         }
         self.state.next_round_deep_search_companies=[]
 
@@ -277,7 +300,7 @@ class ContactDiscoveryFlow(Flow[ContactDiscoveryState]):
 
         self._update_company_search_records(payload, searched_this_round)
 
-        self._store_round_memories(crew_instance,payload, searched_this_round)
+        self._store_round_memories(payload, searched_this_round)
 
         return payload
 
@@ -395,24 +418,14 @@ class ContactDiscoveryFlow(Flow[ContactDiscoveryState]):
 
     def _store_round_memories(
         self,
-        crew_instance: ContactDiscoveryCrew,
         organize_payload: Dict[str, Any],
         searched_this_round: List[str],
     ) -> None:
-        """Write explicit per-agent memories after each round.
-
-        Reusing the same ContactDiscoveryCrew instance preserves the shared Memory()
-        object across rounds. These explicit remembers reinforce what the organizer
-        and searcher should keep for later rounds.
-        """
-        memory_owner = crew_instance
-        if not hasattr(memory_owner, "_shared_memory"):
-            return
+        """Write explicit per-agent memories to flow-scoped memory."""
 
         try:
-            shared_memory = memory_owner._shared_memory()
-            searcher_memory = shared_memory.scope("/agent/searcher")
-            organizer_memory = shared_memory.scope("/agent/organizer")
+            searcher_scope = f"/flow/{self.state.id}/agent/searcher"
+            organizer_scope = f"/flow/{self.state.id}/agent/organizer"
 
             searcher_note = (
                 f"Round {self.state.round_index} | mode={self.state.search_mode} | "
@@ -434,13 +447,15 @@ class ContactDiscoveryFlow(Flow[ContactDiscoveryState]):
                 f"summary={organizer_summary}"
             )
 
-            searcher_memory.remember(
+            self.remember(
                 searcher_note,
-                source="flow:contact-discovery",
+                scope=searcher_scope,
+                source="flow:contact-discovery/searcher",
             )
-            organizer_memory.remember(
+            self.remember(
                 organizer_note,
-                source="flow:contact-discovery",
+                scope=organizer_scope,
+                source="flow:contact-discovery/organizer",
             )
             self.state.organizer_memory_log.append(organizer_note)
         except Exception as exc:
@@ -448,6 +463,27 @@ class ContactDiscoveryFlow(Flow[ContactDiscoveryState]):
             self.state.organizer_memory_log.append(
                 f"Memory write skipped in round {self.state.round_index}: {exc}"
             )
+
+    def _recall_scope_as_text(self, scope: str, query: str, limit: int = 5) -> str:
+        """Recall recent scoped memories and render as prompt-ready bullet text."""
+        try:
+            matches = self.recall(query=query, scope=scope, limit=limit, depth="shallow")
+        except Exception as exc:
+            self.state.organizer_memory_log.append(
+                f"Memory recall skipped in round {self.state.round_index} for {scope}: {exc}"
+            )
+            return ""
+
+        lines: List[str] = []
+        for item in matches or []:
+            content = getattr(getattr(item, "record", None), "content", None)
+            if not content:
+                content = str(item)
+            text = str(content).strip()
+            if text:
+                lines.append(f"- {text}")
+
+        return "\n".join(lines)
 
     def _safe_error_payload(self, exc: Exception) -> Dict[str, Any]:
         return {
@@ -461,18 +497,26 @@ class ContactDiscoveryFlow(Flow[ContactDiscoveryState]):
 
     @staticmethod
     def _coerce_crew_output_to_dict(crew_output: Any) -> Dict[str, Any]:
-        print(f"[DEBUG:coerce] crew_output type={type(crew_output).__name__}, value={crew_output}")
+        def safe_str(obj: Any, limit: int = 200) -> str:
+            """Convert to string safely, avoiding GBK encoding errors."""
+            try:
+                s = str(obj)
+                return s[:limit] + "..." if len(s) > limit else s
+            except Exception:
+                return f"<{type(obj).__name__}>"
+
+        print(f"[DEBUG:coerce] crew_output type={safe_str(type(crew_output).__name__)}")
         if crew_output is None:
             print(f"[DEBUG:coerce] -> branch: crew_output is None, raising ValueError")
             raise ValueError("Crew returned no output.")
 
         if hasattr(crew_output, "json_dict") and crew_output.json_dict:
-            print(f"[DEBUG:coerce] -> branch: json_dict (keys={list(crew_output.json_dict.keys())})")
+            print(f"[DEBUG:coerce] -> branch: json_dict (keys={safe_str(list(crew_output.json_dict.keys()))})")
             return dict(crew_output.json_dict)
 
         if hasattr(crew_output, "pydantic") and crew_output.pydantic is not None:
             pyd_obj = crew_output.pydantic
-            print(f"[DEBUG:coerce] -> branch: pydantic (type={type(pyd_obj).__name__})")
+            print(f"[DEBUG:coerce] -> branch: pydantic (type={safe_str(type(pyd_obj).__name__)})")
             return ContactDiscoveryFlow._model_dump(pyd_obj)
 
         if hasattr(crew_output, "to_dict"):
@@ -483,7 +527,7 @@ class ContactDiscoveryFlow(Flow[ContactDiscoveryState]):
             print(f"[DEBUG:coerce] to_dict() returned empty/non-dict, falling through")
 
         raw = getattr(crew_output, "raw", None)
-        print(f"[DEBUG:coerce] checking raw: type={type(raw).__name__}, len={len(str(raw)) if raw else 0}")
+        print(f"[DEBUG:coerce] checking raw: type={safe_str(type(raw).__name__)}, len={len(str(raw)) if raw else 0}")
         if isinstance(raw, str) and raw.strip():
             try:
                 parsed = json.loads(raw)
@@ -817,15 +861,23 @@ def kickoff(inputs: Optional[Dict[str, Any]] = None) -> Any:
     root_logger.addFilter(_ShutdownNoiseFilter())
 
     try:
-        flow = ContactDiscoveryFlow(tracing=True)
+        flow = ContactDiscoveryFlow(tracing=True, memory=get_shared_memory())
         flow.kickoff(inputs=inputs or {})
     finally:
+        # Flush any pending memory background writes before logger shutdown.
+        # This helps avoid "cannot schedule new futures after shutdown" noise.
+        try:
+            mem = get_shared_memory()
+            if hasattr(mem, "drain_writes"):
+                mem.drain_writes()
+        except Exception:
+            pass
         root_logger.removeFilter(_ShutdownNoiseFilter())
 
 
 def plot() -> None:
     """Generate an HTML flow graph."""
-    flow = ContactDiscoveryFlow(tracing=True)
+    flow = ContactDiscoveryFlow(tracing=True, memory=get_shared_memory())
     flow.plot("ContactDiscoveryFlow")
 
 
