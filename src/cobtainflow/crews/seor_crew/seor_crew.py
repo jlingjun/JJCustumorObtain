@@ -3,13 +3,13 @@
 
 from typing import Any, Dict, List, Literal
 
-from crewai import Agent, Crew, Process, Task
+from crewai import Agent, Crew, LLM, Process, Task
 from crewai.project import CrewBase, after_kickoff, agent, before_kickoff, crew, task
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from crewai_tools import TavilySearchTool, FileWriterTool, FileReadTool
 from cobtainflow.tools import TavilySiteContactCrawlTool, SpiderSinglePageContactTool
 from crewai.agents.agent_builder.base_agent import BaseAgent
-from cobtainflow.memory_factory import get_shared_memory
+from cobtainflow.memory_factory import get_shared_memory, CleanJSONLLM
 
 # =========================
 # Structured output schemas
@@ -53,6 +53,35 @@ class NormalSearchTaskOutput(BaseModel):
     companies_skipped_as_already_covered: List[str] = Field(default_factory=list)
     dedup_notes: List[str] = Field(default_factory=list)
 
+    @model_validator(mode="before")
+    @classmethod
+    def handle_empty_input(cls, data: Any) -> Any:
+        """Handle empty/whitespace-only JSON responses from LLM."""
+        if isinstance(data, str):
+            stripped = data.strip()
+            if not stripped or stripped in ("\n", "\r\n", "\r", "\t", '""', "''"):
+                return cls.model_construct(
+                    round_index=0,
+                    search_mode="broad",
+                    user_query="",
+                    researched_companies=[],
+                    new_company_names_discovered=[],
+                    companies_skipped_as_already_covered=[],
+                    dedup_notes=["Empty response received from LLM"],
+                )
+            # If it looks like JSON but failed to parse, try to fix it
+            if stripped.startswith("{") or stripped.startswith("["):
+                import re
+                import json as _json
+                fixed = re.sub(r',([\n\r\s\t]*[}\]])', r'\1', stripped)
+                fixed = re.sub(r'[\x00-\x09\x0b\x0c\x0e-\x1f]', '', fixed)
+                try:
+                    parsed = _json.loads(fixed)
+                    return parsed
+                except _json.JSONDecodeError:
+                    pass
+        return data
+
 
 class DeepSearchTarget(BaseModel):
     company_name: str
@@ -94,6 +123,38 @@ class OrganizeTaskOutput(BaseModel):
     final_company_records: List[FinalCompanyRecord] = Field(default_factory=list)
     report_markdown: str
     memory_update_notes: MemoryUpdateNotes
+
+    @model_validator(mode="before")
+    @classmethod
+    def handle_empty_input(cls, data: Any) -> Any:
+        """Handle empty/whitespace-only JSON responses from LLM."""
+        if isinstance(data, str):
+            stripped = data.strip()
+            if not stripped or stripped in ("\n", "\r\n", "\r", "\t", '""', "''"):
+                return cls.model_construct(
+                    round_index=0,
+                    should_continue=False,
+                    searched_companies_this_round=[],
+                    all_known_companies_after_merge=[],
+                    next_round_deep_search_companies=[],
+                    final_company_records=[],
+                    report_markdown="[Empty response from LLM]",
+                    memory_update_notes=MemoryUpdateNotes(
+                        organizer_should_remember_companies=[],
+                        organizer_round_summary="Empty response received from LLM",
+                    ),
+                )
+            if stripped.startswith("{") or stripped.startswith("["):
+                import re
+                import json as _json
+                fixed = re.sub(r',([\n\r\s\t]*[}\]])', r'\1', stripped)
+                fixed = re.sub(r'[\x00-\x09\x0b\x0c\x0e-\x1f]', '', fixed)
+                try:
+                    parsed = _json.loads(fixed)
+                    return parsed
+                except _json.JSONDecodeError:
+                    pass
+        return data
 
 
 # =========================
@@ -168,6 +229,13 @@ class ContactDiscoveryCrew():
     def _shared_memory(self):
         return get_shared_memory()
 
+    def _agent_llm(self):
+        return CleanJSONLLM(
+            model="deepseek/deepseek-v3.2-exp-thinking",
+            temperature=0.1,
+            max_tokens=8000,
+        )
+
 
     # ---------- agents ----------
 
@@ -175,6 +243,7 @@ class ContactDiscoveryCrew():
     def searcher(self) -> Agent:
         return Agent(
             config=self.agents_config["searcher"],
+            llm=self._agent_llm(),
             tools=[TavilySearchTool(), SpiderSinglePageContactTool(), TavilySiteContactCrawlTool()],
             memory=self._shared_memory().scope("/agent/searcher"),
             skills=["./skills/contact-search"]
@@ -184,6 +253,7 @@ class ContactDiscoveryCrew():
     def organizer(self) -> Agent:
         return Agent(
             config=self.agents_config["organizer"],
+            llm=self._agent_llm(),
             tools=[FileWriterTool(), FileReadTool()],
             memory=self._shared_memory().scope("/agent/organizer"),
             skills=["./skills/contact-organizer"]
