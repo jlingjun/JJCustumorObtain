@@ -100,6 +100,7 @@ class ContactDiscoveryState(BaseModel):
 
     # Reporting / debugging
     latest_crew_output: Dict[str, Any] = Field(default_factory=dict)
+    latest_searcher_output: Dict[str, Any] = Field(default_factory=dict)
     latest_report_markdown: str = ""
     final_report_markdown: str = ""
     round_reports: List[str] = Field(default_factory=list)
@@ -121,10 +122,13 @@ class ContactDiscoveryFlow(Flow[ContactDiscoveryState]):
       across rounds within the same flow execution.
     """
 
-    # def _crew_bundle(self) -> ContactDiscoveryCrew:
-    #     if not hasattr(self, "_cached_contact_crew"):
-    #         self._cached_contact_crew = ContactDiscoveryCrew()
-    #     return self._cached_contact_crew
+    def __init__(self, **data):
+        # Set DeepSeek-backed HybridMemory before parent auto-creates OpenAI Memory.
+        from crewai import LLM
+        from cobtainflow.file_memory import HybridMemory
+        llm = LLM(model="deepseek/deepseek-chat")
+        data["memory"] = HybridMemory(llm=llm)
+        super().__init__(**data)
 
     @start()
     def initialize(self) -> Dict[str, Any]:
@@ -187,16 +191,8 @@ class ContactDiscoveryFlow(Flow[ContactDiscoveryState]):
 
     def _execute_crew_round(self) -> Dict[str, Any]:
         """Shared crew round execution logic (extracted to avoid or_() single-fire limitation)."""
-        searcher_memory_context = self._recall_scope_as_text(
-            scope=f"/flow/{self.state.id}/agent/searcher",
-            query=f"search strategy and searched companies for {self.state.user_query}",
-            limit=5,
-        )
-        organizer_memory_context = self._recall_scope_as_text(
-            scope=f"/flow/{self.state.id}/agent/organizer",
-            query=f"organizer decisions and deep search targets for {self.state.user_query}",
-            limit=5,
-        )
+        # Agent now handles its own memory recall autonomously via CrewAI Memory.
+        # Global experience accumulation still happens via self.remember() in _write_memory().
 
         crew_inputs = {
             "flow_id": self.state.id,
@@ -209,8 +205,6 @@ class ContactDiscoveryFlow(Flow[ContactDiscoveryState]):
             "target_companies_for_deep_search": [
                 target.model_dump() for target in self.state.next_round_deep_search_companies
             ],
-            "searcher_memory_context": searcher_memory_context,
-            "organizer_memory_context": organizer_memory_context,
         }
         self.state.next_round_deep_search_companies=[]
 
@@ -237,6 +231,23 @@ class ContactDiscoveryFlow(Flow[ContactDiscoveryState]):
             print(f"[ERROR] Full traceback:\n{traceback.format_exc()}")
             self.state.stop_reason = f"crew_error_round_{self.state.round_index}"
             return self._safe_error_payload(exc)
+
+        # Extract searcher output (first task) from crew_output.tasks_output
+        try:
+            if hasattr(crew_output, 'tasks_output') and crew_output.tasks_output:
+                searcher_task = crew_output.tasks_output[0]
+                if hasattr(searcher_task, 'json_dict') and searcher_task.json_dict:
+                    self.state.latest_searcher_output = dict(searcher_task.json_dict)
+                elif hasattr(searcher_task, 'pydantic') and searcher_task.pydantic:
+                    self.state.latest_searcher_output = self._model_dump(searcher_task.pydantic)
+                elif hasattr(searcher_task, 'raw') and isinstance(searcher_task.raw, dict):
+                    self.state.latest_searcher_output = searcher_task.raw
+                else:
+                    self.state.latest_searcher_output = {}
+            else:
+                self.state.latest_searcher_output = {}
+        except Exception:
+            self.state.latest_searcher_output = {}
 
         try:
             payload = self._coerce_crew_output_to_dict(crew_output)
@@ -421,43 +432,85 @@ class ContactDiscoveryFlow(Flow[ContactDiscoveryState]):
         organize_payload: Dict[str, Any],
         searched_this_round: List[str],
     ) -> None:
-        """Write explicit per-agent memories to flow-scoped memory."""
+        """Write per-agent memories (session-scoped) and cross-session insights (global/)."""
 
         try:
-            searcher_scope = f"/flow/{self.state.id}/agent/searcher"
-            organizer_scope = f"/flow/{self.state.id}/agent/organizer"
+            searcher_scope = f"/agent/searcher/{self.state.id}"
+            organizer_scope = f"/agent/organizer/{self.state.id}"
 
-            searcher_note = (
-                f"Round {self.state.round_index} | mode={self.state.search_mode} | "
-                f"query={self.state.user_query} | searched companies={', '.join(searched_this_round) or 'none'}"
-            )
+            # Extract searcher experience from latest_searcher_output
+            searcher_output = self.state.latest_searcher_output
+            search_strategy = searcher_output.get("search_strategy", "")
+            effective_terms = searcher_output.get("effective_query_terms", [])
+            tool_effectiveness = searcher_output.get("tool_effectiveness", {})
+            discovered_patterns = searcher_output.get("discovered_patterns", [])
+            failed_patterns = searcher_output.get("failed_patterns", [])
+
+            # Session-scoped: /agent/searcher/{session_id}
+            searcher_session_note = "\n".join(filter(None, [
+                f"Round {self.state.round_index} | mode={self.state.search_mode} | query={self.state.user_query}",
+                f"searched: {', '.join(searched_this_round) or 'none'}",
+                f"strategy: {search_strategy}" if search_strategy else None,
+                f"effective terms: {', '.join(effective_terms)}" if effective_terms else None,
+                f"tool_effectiveness: {json.dumps(tool_effectiveness, ensure_ascii=False)}" if tool_effectiveness else None,
+                f"patterns: {', '.join(discovered_patterns)}" if discovered_patterns else None,
+                f"failed: {', '.join(failed_patterns)}" if failed_patterns else None,
+            ]))
+
+            # Cross-session global: /global/searcher
+            global_searcher_note = "\n".join(filter(None, [
+                f"Session {self.state.id} | Round {self.state.round_index} | mode={self.state.search_mode}",
+                f"query: {self.state.user_query}",
+                f"searched: {', '.join(searched_this_round) or 'none'}",
+                f"effective_query_terms: {effective_terms}" if effective_terms else None,
+                f"tool_effectiveness: {json.dumps(tool_effectiveness, ensure_ascii=False)}" if tool_effectiveness else None,
+                f"discovered_patterns: {discovered_patterns}" if discovered_patterns else None,
+                f"failed_patterns: {failed_patterns}" if failed_patterns else None,
+                f"strategy: {search_strategy}" if search_strategy else None,
+            ]))
+
+            # Extract organizer experience from organize_payload
             organizer_targets = [
                 t.company_name for t in self.state.next_round_deep_search_companies
             ]
-            organizer_summary = str(
-                organize_payload.get("memory_update_notes", {}).get(
-                    "organizer_round_summary", ""
-                )
-                or ""
-            )
-            organizer_note = (
-                f"Round {self.state.round_index} | should_continue={self.state.should_continue} | "
-                f"searched companies={', '.join(searched_this_round) or 'none'} | "
-                f"next targets={', '.join(organizer_targets) or 'none'} | "
-                f"summary={organizer_summary}"
-            )
+            strategic_insights = organize_payload.get("strategic_insights", [])
+            decision_rationale = organize_payload.get("decision_rationale", "")
+            dedup_patterns = organize_payload.get("dedup_patterns_learned", [])
+            completeness_standard = organize_payload.get("completeness_standard", "")
+            deep_search_value = organize_payload.get("deep_search_value_assessment", "")
+            next_recommendations = organize_payload.get("next_session_recommendations", [])
 
-            self.remember(
-                searcher_note,
-                scope=searcher_scope,
-                source="flow:contact-discovery/searcher",
-            )
-            self.remember(
-                organizer_note,
-                scope=organizer_scope,
-                source="flow:contact-discovery/organizer",
-            )
-            self.state.organizer_memory_log.append(organizer_note)
+            organizer_session_note = "\n".join(filter(None, [
+                f"Round {self.state.round_index} | should_continue={self.state.should_continue}",
+                f"searched: {', '.join(searched_this_round) or 'none'}",
+                f"next targets: {', '.join(organizer_targets) or 'none'}",
+                f"decisions: {decision_rationale}" if decision_rationale else None,
+                f"insights: {', '.join(strategic_insights)}" if strategic_insights else None,
+                f"dedup: {', '.join(dedup_patterns)}" if dedup_patterns else None,
+                f"completeness_std: {completeness_standard}" if completeness_standard else None,
+                f"deep_search_value: {deep_search_value}" if deep_search_value else None,
+            ]))
+
+            global_organizer_note = "\n".join(filter(None, [
+                f"Session {self.state.id} | Round {self.state.round_index}",
+                f"query: {self.state.user_query}",
+                f"should_continue: {self.state.should_continue}",
+                f"next targets: {', '.join(organizer_targets) or 'none'}",
+                f"strategic_insights: {strategic_insights}" if strategic_insights else None,
+                f"decision_rationale: {decision_rationale}" if decision_rationale else None,
+                f"dedup_patterns_learned: {dedup_patterns}" if dedup_patterns else None,
+                f"completeness_standard: {completeness_standard}" if completeness_standard else None,
+                f"deep_search_value_assessment: {deep_search_value}" if deep_search_value else None,
+                f"next_session_recommendations: {next_recommendations}" if next_recommendations else None,
+            ]))
+
+            # Write all 4 memories
+            self.remember(searcher_session_note, scope=searcher_scope, source="flow:contact-discovery/searcher")
+            self.remember(organizer_session_note, scope=organizer_scope, source="flow:contact-discovery/organizer")
+            self.remember(global_searcher_note, scope="/global/searcher", source="flow:contact-discovery/searcher")
+            self.remember(global_organizer_note, scope="/global/organizer", source="flow:contact-discovery/organizer")
+
+            self.state.organizer_memory_log.append(organizer_session_note)
         except Exception as exc:
             # Memory should enhance the flow, not break it.
             self.state.organizer_memory_log.append(
@@ -467,6 +520,8 @@ class ContactDiscoveryFlow(Flow[ContactDiscoveryState]):
     def _recall_scope_as_text(self, scope: str, query: str, limit: int = 5) -> str:
         """Recall recent scoped memories and render as prompt-ready bullet text."""
         try:
+            from cobtainflow.file_memory import MemoryMatch
+
             matches = self.recall(query=query, scope=scope, limit=limit, depth="shallow")
         except Exception as exc:
             self.state.organizer_memory_log.append(
@@ -476,9 +531,11 @@ class ContactDiscoveryFlow(Flow[ContactDiscoveryState]):
 
         lines: List[str] = []
         for item in matches or []:
-            content = getattr(getattr(item, "record", None), "content", None)
-            if not content:
-                content = str(item)
+            # MemoryMatch has .content directly (not .record.content like CrewAI Memory)
+            if isinstance(item, MemoryMatch):
+                content = item.content
+            else:
+                content = getattr(getattr(item, "record", None), "content", None) or str(item)
             text = str(content).strip()
             if text:
                 lines.append(f"- {text}")
@@ -820,11 +877,26 @@ class ContactDiscoveryFlow(Flow[ContactDiscoveryState]):
             "organizer_memory_log": self.state.organizer_memory_log,
         }
 
+        def _sanitize_value(obj):
+            """Recursively remove surrogate characters from all values."""
+            import re
+            if isinstance(obj, str):
+                return re.sub(r"[\ud800-\udfff]", "", obj)
+            elif isinstance(obj, dict):
+                return {k: _sanitize_value(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [_sanitize_value(item) for item in obj]
+            return obj
+
+        clean_payload = _sanitize_value(result_payload)
+
         with open(f"output/{self.state.id}_contact_discovery_result.json", "w", encoding="utf-8") as f:
-            json.dump(result_payload, f, ensure_ascii=False, indent=2)
+            json.dump(clean_payload, f, ensure_ascii=False, indent=2)
 
         with open(f"output/{self.state.id}_contact_discovery_report.md", "w", encoding="utf-8") as f:
-            f.write(self.state.final_report_markdown or self._build_final_report())
+            report = self.state.final_report_markdown or self._build_final_report()
+            import re
+            f.write(re.sub(r"[\ud800-\udfff]", "", report))
 
 
 # =========================

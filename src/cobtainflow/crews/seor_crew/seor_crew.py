@@ -1,7 +1,7 @@
 ﻿import os
-# from __future__ import annotations
-
-from typing import Any, Dict, List, Literal
+import re
+import json
+from typing import Any, Dict, List, Literal, Optional
 
 from crewai import Agent, Crew, LLM, Process, Task
 from crewai.project import CrewBase, after_kickoff, agent, before_kickoff, crew, task
@@ -9,7 +9,82 @@ from pydantic import BaseModel, Field, model_validator
 from crewai_tools import TavilySearchTool, FileWriterTool, FileReadTool
 from cobtainflow.tools import TavilySiteContactCrawlTool, SpiderSinglePageContactTool
 from crewai.agents.agent_builder.base_agent import BaseAgent
-from cobtainflow.memory_factory import get_shared_memory, CleanJSONLLM
+from cobtainflow.file_memory import HybridMemory
+
+
+# =========================
+# Custom LLM wrapper for JSON-clean output
+# =========================
+
+
+class CleanJSONLLM(LLM):
+    """Custom LLM wrapper that strips markdown code blocks from JSON responses."""
+
+    def call(
+        self,
+        messages: List[Any],
+        tools: Optional[List[Any]] = None,
+        callbacks: Optional[List[Any]] = None,
+        available_functions: Optional[dict] = None,
+        response_format: Optional[Any] = None,
+    ) -> str:
+        result = super().call(
+            messages,
+            tools=tools,
+            callbacks=callbacks,
+            available_functions=available_functions,
+        )
+        if isinstance(result, str):
+            return self._clean_json_output(result)
+        return result
+
+    def _clean_json_output(self, text: str) -> str:
+        if not isinstance(text, str):
+            return text
+        stripped = text.strip()
+        # Check for empty/whitespace/newline-only strings, including escaped \n
+        if (
+            not stripped
+            or stripped in ("\n", "\r\n", "\r", "\t", '""', "''")
+            or stripped == r"\n"
+            or stripped == r"\\n"
+            or all(c in "\n\r\t " for c in stripped)
+        ):
+            return "{}"
+        cleaned = stripped
+        if cleaned.startswith("```json"):
+            cleaned = cleaned[7:]
+        elif cleaned.startswith("```"):
+            cleaned = cleaned[3:]
+        if cleaned.endswith("```"):
+            cleaned = cleaned[:-3]
+        cleaned = cleaned.strip()
+        if not cleaned:
+            return "{}"
+        # Remove surrogate characters (U+D800-U+DFFF) that cause UTF-8 encoding errors
+        # These come from crewai logging system using surrogateescape which produces lone surrogates
+        cleaned = re.sub(r"[\ud800-\udfff]", "", cleaned)
+        if cleaned.startswith("{") or cleaned.startswith("["):
+            try:
+                json.loads(cleaned)
+                return cleaned
+            except json.JSONDecodeError:
+                fixed = self._fix_common_json_issues(cleaned)
+                try:
+                    json.loads(fixed)
+                    return fixed
+                except json.JSONDecodeError:
+                    pass
+        return cleaned
+
+    def _fix_common_json_issues(self, text: str) -> str:
+        text = re.sub(r",([\n\r\s\t]*[}\]])", r"\1", text)
+        text = re.sub(r"[\x00-\x09\x0b\x0c\x0e-\x1f]", "", text)
+        try:
+            json.loads(text)
+            return text
+        except json.JSONDecodeError:
+            return text
 
 # =========================
 # Structured output schemas
@@ -53,6 +128,28 @@ class NormalSearchTaskOutput(BaseModel):
     companies_skipped_as_already_covered: List[str] = Field(default_factory=list)
     dedup_notes: List[str] = Field(default_factory=list)
 
+    # --- Search experience (for cross-session learning) ---
+    search_strategy: str = Field(
+        default="",
+        description="本轮搜索策略总结，如使用了哪些查询词、选择了哪些工具组合",
+    )
+    effective_query_terms: List[str] = Field(
+        default_factory=list,
+        description="本轮发现有效的查询词/短语",
+    )
+    tool_effectiveness: Dict[str, str] = Field(
+        default_factory=dict,
+        description="各工具的效果评价，key 为工具名，value 为简短评价",
+    )
+    discovered_patterns: List[str] = Field(
+        default_factory=list,
+        description="本轮发现的新模式，如地区特点、网站结构特点、联系方式分布规律",
+    )
+    failed_patterns: List[str] = Field(
+        default_factory=list,
+        description="本轮失败的尝试，如某些查询词效果差、某些来源不可靠",
+    )
+
     @model_validator(mode="before")
     @classmethod
     def handle_empty_input(cls, data: Any) -> Any:
@@ -68,6 +165,11 @@ class NormalSearchTaskOutput(BaseModel):
                     new_company_names_discovered=[],
                     companies_skipped_as_already_covered=[],
                     dedup_notes=["Empty response received from LLM"],
+                    search_strategy="",
+                    effective_query_terms=[],
+                    tool_effectiveness={},
+                    discovered_patterns=[],
+                    failed_patterns=[],
                 )
             # If it looks like JSON but failed to parse, try to fix it
             if stripped.startswith("{") or stripped.startswith("["):
@@ -75,6 +177,7 @@ class NormalSearchTaskOutput(BaseModel):
                 import json as _json
                 fixed = re.sub(r',([\n\r\s\t]*[}\]])', r'\1', stripped)
                 fixed = re.sub(r'[\x00-\x09\x0b\x0c\x0e-\x1f]', '', fixed)
+                fixed = re.sub(r"[\ud800-\udfff]", "", fixed)
                 try:
                     parsed = _json.loads(fixed)
                     return parsed
@@ -124,6 +227,32 @@ class OrganizeTaskOutput(BaseModel):
     report_markdown: str
     memory_update_notes: MemoryUpdateNotes
 
+    # --- Organization & decision experience (for cross-session learning) ---
+    strategic_insights: List[str] = Field(
+        default_factory=list,
+        description="本轮整理过程中发现的策略性洞察，如置信度判断标准、完整性评估经验",
+    )
+    decision_rationale: str = Field(
+        default="",
+        description="本轮决策的依据，如为何选择继续深搜而非 broad search",
+    )
+    dedup_patterns_learned: List[str] = Field(
+        default_factory=list,
+        description="本轮学到的去重模式，如公司名变体识别",
+    )
+    completeness_standard: str = Field(
+        default="",
+        description="本轮使用的完整性评估标准描述",
+    )
+    deep_search_value_assessment: str = Field(
+        default="",
+        description="对哪些公司值得深搜、哪些不值得的评估经验",
+    )
+    next_session_recommendations: List[str] = Field(
+        default_factory=list,
+        description="对后续 session 的建议，如可尝试的新地区、新查询词",
+    )
+
     @model_validator(mode="before")
     @classmethod
     def handle_empty_input(cls, data: Any) -> Any:
@@ -143,12 +272,19 @@ class OrganizeTaskOutput(BaseModel):
                         organizer_should_remember_companies=[],
                         organizer_round_summary="Empty response received from LLM",
                     ),
+                    strategic_insights=[],
+                    decision_rationale="",
+                    dedup_patterns_learned=[],
+                    completeness_standard="",
+                    deep_search_value_assessment="",
+                    next_session_recommendations=[],
                 )
             if stripped.startswith("{") or stripped.startswith("["):
                 import re
                 import json as _json
                 fixed = re.sub(r',([\n\r\s\t]*[}\]])', r'\1', stripped)
                 fixed = re.sub(r'[\x00-\x09\x0b\x0c\x0e-\x1f]', '', fixed)
+                fixed = re.sub(r"[\ud800-\udfff]", "", fixed)
                 try:
                     parsed = _json.loads(fixed)
                     return parsed
@@ -190,9 +326,7 @@ class ContactDiscoveryCrew():
         normalized.setdefault("round_index", 1)
         normalized.setdefault("search_mode", "broad")
         normalized.setdefault("max_companies_per_round", 10)
-        normalized.setdefault("searcher_memory_context", "")
-        normalized.setdefault("organizer_memory_context", "")
-
+        
         normalized["already_seen_companies"] = self._normalize_string_list(
             normalized.get("already_seen_companies")
         )
@@ -227,13 +361,13 @@ class ContactDiscoveryCrew():
     
     # ---------- memory ----------
     def _shared_memory(self):
-        return get_shared_memory()
+        return HybridMemory(llm=self._agent_llm())
 
     def _agent_llm(self):
         return CleanJSONLLM(
             model="deepseek/deepseek-v3.2-exp-thinking",
             temperature=0.1,
-            max_tokens=8000,
+            max_tokens=4000,
         )
 
 
@@ -245,7 +379,7 @@ class ContactDiscoveryCrew():
             config=self.agents_config["searcher"],
             llm=self._agent_llm(),
             tools=[TavilySearchTool(), SpiderSinglePageContactTool(), TavilySiteContactCrawlTool()],
-            memory=self._shared_memory().scope("/agent/searcher"),
+            memory=self._shared_memory(),
             skills=["./skills/contact-search"]
         )
 
@@ -255,7 +389,7 @@ class ContactDiscoveryCrew():
             config=self.agents_config["organizer"],
             llm=self._agent_llm(),
             tools=[FileWriterTool(), FileReadTool()],
-            memory=self._shared_memory().scope("/agent/organizer"),
+            memory=self._shared_memory(),
             skills=["./skills/contact-organizer"]
         )
 
@@ -288,7 +422,6 @@ class ContactDiscoveryCrew():
             agents=self.agents,
             tasks=self.tasks,
             process=Process.sequential,
-            memory=self._shared_memory(),
             tracing=True,
             verbose=True,
             cache=False,

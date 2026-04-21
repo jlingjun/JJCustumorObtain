@@ -5,7 +5,11 @@
       "Bash(uv run python -c ':*)",
       "WebSearch",
       "mcp__tavily__tavily_search",
-      "mcp__tavily__tavily_extract"
+      "mcp__tavily__tavily_extract",
+      "Bash(uv pip:*)",
+      "Bash(uv run:*)",
+      "mcp__tavily__tavily_research",
+      "mcp__tavily__tavily_crawl"
     ]
   }
 }

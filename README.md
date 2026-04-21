@@ -111,14 +111,24 @@ uv run python -c "from cobtainflow.main import kickoff; kickoff({'user_query': '
 ## 技术架构
 
 ```
-用户输入 → [Flow 编排层] → [Agent 协作层] → [工具执行层]
-                                ↓
-                         searcher + organizer
-                                ↓
-                         Tavily / Spider / Crawl
+用户输入 → [Flow 编排层] → [Crew 单轮执行层] → [工具执行层]
+                      ↓
+              ContactDiscoveryFlow
+                 (多轮循环控制)
+                      ↓
+         ┌────────────┴────────────┐
+         ↓                         ↓
+   searcher agent           organizer agent
+   (搜索公司/联系方式)      (去重/整合/决策)
+         ↓                         ↓
+   Skills: contact-search    Skills: contact-organizer
+         ↓                         ↓
+   TavilySearchTool          FileWriterTool
+   SpiderSinglePageContactTool   FileReadTool
+   TavilySiteContactCrawlTool
 ```
 
-**技术栈**：CrewAI Flow · DeepSeek-V3 · Tavily API · Spider-rs · Pydantic · UV
+**技术栈**：CrewAI Flow · DeepSeek-V3 · Tavily API · Spider-rs · Pydantic · ChromaDB · UV
 
 ---
 
@@ -193,18 +203,65 @@ cobtainflow/
 ├── src/cobtainflow/
 │   ├── main.py                  # Flow 入口 & CLI
 │   ├── crews/seor_crew/
-│   │   ├── seor_crew.py         # Crew 定义
+│   │   ├── seor_crew.py         # Crew 定义 & 输出模型
 │   │   └── config/
 │   │       ├── agents.yaml      # Agent 配置
 │   │       └── tasks.yaml       # Task 配置
-│   └── tools/
-│       └── contact_discovery_tools.py  # 自定义工具
+│   ├── tools/
+│   │   └── contact_discovery_tools.py  # 自定义工具
+│   ├── file_memory.py           # 文件存储后端 & HybridMemory
+│   └── memory_factory.py        # 进程级共享 Memory 单例
 ├── skills/
-│   ├── contact-search/          # 搜索能力
-│   └── contact-organizer/       # 整理报告能力
-├── output/                      # 运行输出目录
+│   ├── contact-search/           # 搜索能力
+│   └── contact-organizer/        # 整理报告能力
+├── memory/                       # Memory 持久化目录（自动创建）
+├── output/                       # 运行输出目录
 └── pyproject.toml               # 项目配置
 ```
+
+---
+
+## Memory 架构
+
+项目实现了完整的自定义 Memory 系统，详情见 [file_memory.py](src/cobtainflow/file_memory.py)。
+
+### 存储后端：FileStorageBackend
+
+- **md 文件**为内容 source of truth
+- **ChromaDB**作为向量索引
+- **BM25**作为关键词检索
+- **RRF 融合**（k=60）实现混合搜索
+
+### Memory 类型
+
+| 类 | 继承 | 用途 |
+|---|------|------|
+| `FileMemory` | CrewAI `Memory` | 文件存储后端 + ChromaDB 向量检索 |
+| `HybridMemory` | `FileMemory` | 扩展 BM25 混合检索（解决 CrewAI recall 只传 embedding 的问题） |
+
+### 检索流程
+
+```
+HybridMemory.recall(query)
+  → 存储 raw query 到 _last_raw_query
+  → 将 [query] 作为 categories[0] 传递给 storage.search()
+  → FileStorageBackend.search() 用 categories[0] 做 BM25
+  → 同时用 query_embedding 做 ChromaDB 向量检索
+  → RRF 融合两路结果
+```
+
+### Scope 约定
+
+| Scope | 内容 |
+|-------|------|
+| `/agent/searcher/{session_id}` | searcher agent 本轮搜索经验 |
+| `/agent/organizer/{session_id}` | organizer agent 本轮整合经验 |
+| `/global/searcher` | searcher 跨 session 累积洞察 |
+| `/global/organizer` | organizer 跨 session 累积洞察 |
+
+### 自定义 Embedding
+
+使用 `EMBEDDING_API_KEY` + `EMBEDDING_BASE_URL` 配置自定义 embedding 提供者（默认 `text-embedding-v4`）。
 
 ---
 
@@ -217,4 +274,5 @@ cobtainflow/
 | 搜索与爬取 | Tavily API (>=0.7.23) |
 | 网页抓取 | Spider-rs (>=0.0.57) |
 | 数据验证 | Pydantic |
+| 向量存储 | ChromaDB |
 | 包管理 | UV |

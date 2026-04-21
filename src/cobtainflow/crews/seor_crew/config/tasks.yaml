@@ -1,7 +1,7 @@
 normal_search_task:
   description: >
     基于用户请求 {user_query} 与当前 Flow 状态，执行且仅执行一轮"公司搜索/联系方式补全"工作。
-    
+
     【重要】你已激活 contact-search skill，该skill提供搜索能力和工具，但输出格式必须严格遵循本Task的expected_output定义（NormalSearchTaskOutput）。
 
     你会收到以下输入：
@@ -12,10 +12,9 @@ normal_search_task:
     - max_companies_per_round: {max_companies_per_round}
     - already_seen_companies: {already_seen_companies}
     - target_companies_for_deep_search: {target_companies_for_deep_search}
-    - searcher_memory_context: {searcher_memory_context}
 
     执行规则：
-    1. 当 search_mode=broad 时：围绕用户的国家、行业、产品或公司条件，优先发现新的相关公司，并尽可能提取邮箱、电话、WhatsApp、LinkedIn、联系表单等公开联系方式。
+    1. 当 search_mode=broad 时：围绕用户的国家，行业、产品或公司条件，优先发现新的相关公司，并尽可能提取邮箱、电话、WhatsApp、LinkedIn、联系表单等公开联系方式。
     2. 当 search_mode=deep 时：只围绕 target_companies_for_deep_search 中的公司开展补全，不再扩大搜索范围；重点补全缺失字段与缺失证据。此时可以使用contact-search skill提供的深搜索能力。
     3. 优先使用公司官网、官方 contact/about 页面、官方 LinkedIn 页面、公司控制的社交媒体账号、可信企业目录等来源。
     4. 每一条联系方式都必须携带 source_url 与简短 evidence；无法证实的内容不要写入结果。
@@ -23,37 +22,64 @@ normal_search_task:
     6. already_seen_companies 中已经完整覆盖的公司不要重复深挖；如果该公司被 Flow 指定为 deep 搜索目标，则只补缺失项。
     7. 任务结束前，明确列出本轮实际搜索过的公司，方便后续记忆系统提取"已搜索公司"经验。
 
+    【经验沉淀】除公司列表外，必须在输出中包含本轮搜索经验（供跨session学习）：
+    - search_strategy：本轮使用的搜索策略概述
+    - effective_query_terms：本轮发现效果好的查询词/短语列表
+    - tool_effectiveness：各工具（TavilySearchTool / SpiderSinglePageContactTool / TavilySiteContactCrawlTool）的效果评价
+    - discovered_patterns：本轮发现的新模式，如地区特点、网站结构规律、联系方式分布规律
+    - failed_patterns：本轮失败的尝试
+
     只输出有证据支撑的公司，不要输出猜测项，不要撰写最终结论报告。
   expected_output: >
     直接输出一个合法的 JSON 对象，不要有任何前缀文字、后缀说明、或 markdown 代码块。
 
-    JSON 结构：
-    {"round_index": 1, "search_mode": "broad或deep", "user_query": "...", "researched_companies": [...], "new_company_names_discovered": [...], "companies_skipped_as_already_covered": [...], "dedup_notes": [...]}
+    JSON 结构（含经验字段）：
+    {
+      "round_index": 1,
+      "search_mode": "broad或deep",
+      "user_query": "...",
+      "researched_companies": [...],
+      "new_company_names_discovered": [...],
+      "companies_skipped_as_already_covered": [...],
+      "dedup_notes": [...],
+      "search_strategy": "本轮使用的搜索策略，如 broad mode 广泛发现新公司",
+      "effective_query_terms": ["有效的查询词1", "有效的查询词2"],
+      "tool_effectiveness": {"TavilySearchTool": "效果好", "SpiderSinglePageContactTool": "对官网有效"},
+      "discovered_patterns": ["智利公司多在 Contact 页面提供邮箱"],
+      "failed_patterns": ["搜索 vendor 返回大量中介"]
+    }
   agent: searcher
 
 organize_task:
   description: >
     审核并整合本轮搜索结果，生成"给用户看的报告 + 给 Flow 用的下一轮决策"。
-    
+
     【重要】你已激活 contact-organizer skill，该skill提供整理和报告能力，但输出格式必须严格遵循本Task的expected_output定义（OrganizeTaskOutput）。
-    
+
     【输入格式】你将获得 normal_search_task 的输出（NormalSearchTaskOutput格式）作为 context，并且还会收到：
     - user_query: {user_query}
     - flow_id: {flow_id}
     - round_index: {round_index}
     - already_seen_companies: {already_seen_companies}
     - target_companies_for_deep_search: {target_companies_for_deep_search}
-    - organizer_memory_context: {organizer_memory_context}
 
     你的职责：
     1. 将同一公司的不同别名、不同来源结果合并到同一条公司记录下。
-    2. 去除重复联系方式，保留最可靠、最可执行的联系方式。
+    2. 去除重复联系方式，保留最可靠，最可执行的联系方式。
     3. 逐家公司判断联系方式完整性：complete / partial / insufficient。
     4. 过滤不相关公司：排除国家/地区不匹配、产品/行业不匹配、完全是错误线索的公司。
     5. 只把"仍然重要且仍然缺关键字段或关键证据"的公司放入 next_round_deep_search_companies。
     6. 生成一份用户可读的 markdown 报告，报告中要体现：公司、官网、已找到的联系方式、缺失项、可信度判断。
     7. 在输出中明确写出本轮搜索过的公司，方便 organizer 在每轮结束前沉淀"已搜索公司"记忆。
-    8. 参考 organizer_memory_context 中的历史决策，避免重复把连续无增量的公司放入下一轮深搜目标。
+    8. 通过 agent memory 系统自主 recall 历史决策经验。
+
+    【经验沉淀】除报告和决策外，必须在输出中包含本轮整理经验（供跨session学习）：
+    - strategic_insights：本轮发现的有效策略，如置信度判断标准、完整性阈值
+    - decision_rationale：本轮决策的依据，如为何选择深搜而非 broad search
+    - dedup_patterns_learned：本轮学到的去重模式
+    - completeness_standard：本轮使用的完整性评估标准描述
+    - deep_search_value_assessment：对哪些公司值得深搜、哪些不值得的经验
+    - next_session_recommendations：对后续 session 的建议，如可尝试的新地区、新查询词
 
     【重要】next_round_deep_search_companies 的入选条件（必须全部满足）：
     - 与用户需求相关（国家/地区匹配、产品/行业匹配、不是错误线索）
@@ -71,8 +97,23 @@ organize_task:
   expected_output: >
     直接输出一个合法的 JSON 对象，不要有任何前缀文字、后缀说明、或 markdown 代码块。
 
-    JSON 结构：
-    {"round_index": 1, "should_continue": true/false, "searched_companies_this_round": [...], "all_known_companies_after_merge": [...], "next_round_deep_search_companies": [...], "final_company_records": [...], "report_markdown": "...", "memory_update_notes": {...}}
+    JSON 结构（含经验字段）：
+    {
+      "round_index": 1,
+      "should_continue": true/false,
+      "searched_companies_this_round": [...],
+      "all_known_companies_after_merge": [...],
+      "next_round_deep_search_companies": [...],
+      "final_company_records": [...],
+      "report_markdown": "...",
+      "memory_update_notes": {...},
+      "strategic_insights": ["官网来源的联系方式可信度最高", "有3种联系方式即可视为 partial complete"],
+      "decision_rationale": "本轮选择深搜 CIME 而非 broad，因为已有 5 家基础够了",
+      "dedup_patterns_learned": ["CIME COMERCIAL S.A. = CIME，是同一公司"],
+      "completeness_standard": "partial + evidence_quality=high 即可交付",
+      "deep_search_value_assessment": "对仅有邮箱缺电话的公司，深搜收益最大",
+      "next_session_recommendations": ["下次可尝试搜索巴西市场"]
+    }
   agent: organizer
   context:
     - normal_search_task
